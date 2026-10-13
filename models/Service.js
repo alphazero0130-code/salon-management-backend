@@ -4,12 +4,12 @@ const serviceSchema = new mongoose.Schema({
   serviceName: {
     type: String,
     trim: true,
-    require: [true, "Service Name is required"],
+    required: [true, "Service Name is required"],
     minlength: [2, "Name must contain at least 2 characters"],
   },
   price: {
     type: Number,
-    require: [true, "Service Price is required"],
+    required: [true, "Service Price is required"],
   },
   status: {
     type: String,
@@ -25,4 +25,4 @@ const serviceSchema = new mongoose.Schema({
 
 const Service = mongoose.model("Service", serviceSchema);
 
-export default serviceSchema;
+export default Service;

@@ -5,23 +5,24 @@ const appointmentSchema = new mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
-      require: true,
+      required: true,
     },
-    serviceName: {
+
+    service: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Service",
-      require: true,
+      required: true,
     },
 
     price: {
       type: Number,
-      require: true,
+      required: true,
       min: 0,
     },
 
     appointmentDate: {
       type: Date,
-      require: true,
+      required: true,
     },
 
     status: {
