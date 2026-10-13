@@ -71,7 +71,9 @@ const getAppointment = async (req, res, next) => {
 
     if (status) {
       if (!["booked", "completed", "cancelled"].includes(status)) {
-        const error = new Error("Status must be active or inactive");
+        const error = new Error(
+          "Status must be either booked, completed or cancelled",
+        );
         error.statusCode = 400;
         return next(error);
       }
@@ -213,10 +215,89 @@ const deleteAppointment = async (req, res, next) => {
   }
 };
 
+const getRevenueSummary = async (req, res, next) => {
+  try {
+    const summary = await Appointment.aggregate([
+      {
+        $match: {
+          status: "booked",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$price" },
+          totalAppointment: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const result = summary[0] || {
+      totalRevenue: 0,
+      totalAppointment: 0,
+    };
+
+    res.status(200).json({
+      success: true,
+      message: "Revenue fetch successfully",
+      revenue: result.totalRevenue,
+      completedAppointments: result.totalAppointment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRevenueByService = async (req, res, next) => {
+  try {
+    const report = await Appointment.aggregate([
+      {
+        $match: {
+          status: "completed",
+        },
+      },
+      {
+        $group: {
+          _id: "$service",
+          totalRevenue: { $sum: "$price" },
+          totalAppointments: { $sum: 1 },
+        },
+      },
+      {
+        $sort: {
+          totalRevenue: -1,
+        },
+      },
+    ]);
+
+    const totalRevenue = report.reduce(
+      (sum, item) => sum + item.totalRevenue,
+      0
+    );
+
+    const totalAppointments = report.reduce(
+      (sum, item) => sum + item.totalAppointments,
+      0
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Revenue fetched successfully",
+      totalRevenue,
+      totalAppointments,
+      report,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   createAppointment,
   getAppointment,
   updateAppointment,
   updateField,
   deleteAppointment,
+  getRevenueSummary,
+  getRevenueByService
 };
