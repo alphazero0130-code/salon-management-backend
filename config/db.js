@@ -8,3 +8,16 @@ const connectDB = async () => {
 };
 
 export default connectDB;
+
+/*
+
+
+username: alphazero0130_db_user
+password: N7cZw6IRydNKYJfZ
+
+
+
+
+MONGO_URI=mongodb+srv://alphazero0130_db_user:N7cZw6IRydNKYJfZ@cluster1.ftoifrn.mongodb.net/salonDB?appName=Cluster1
+PORT=3000
+*/
