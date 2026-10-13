@@ -272,12 +272,12 @@ const getRevenueByService = async (req, res, next) => {
 
     const totalRevenue = report.reduce(
       (sum, item) => sum + item.totalRevenue,
-      0
+      0,
     );
 
     const totalAppointments = report.reduce(
       (sum, item) => sum + item.totalAppointments,
-      0
+      0,
     );
 
     return res.status(200).json({
@@ -299,5 +299,5 @@ export default {
   updateField,
   deleteAppointment,
   getRevenueSummary,
-  getRevenueByService
+  getRevenueByService,
 };
