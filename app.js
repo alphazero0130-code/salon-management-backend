@@ -4,11 +4,18 @@ import rateLimit from "express-rate-limit";
 import errorHandler from "./middleware/errorHandler.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
-import appointmentRoutes from "./routes/appointmentRoutes.js"
+import appointmentRoutes from "./routes/appointmentRoutes.js";
+import loginRoutes from "./routes/loginRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 app.use(helmet());
 app.use(express.json({ limit: "100kb" }));
+
+app.use((req, res, next) => {
+  console.log(`Route: ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -24,13 +31,17 @@ const apiLimiter = rateLimit({
 app.use(apiLimiter);
 
 //Register APIs Routes
-app.use("/customers", customerRoutes);
-app.use("/services", serviceRoutes);
-app.use("/appointments", appointmentRoutes);
+app.use("/api", loginRoutes);
+app.use("/api/customers", customerRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/appointments", appointmentRoutes);
+
+
+app.use("/api/auth", authRoutes);
 
 // Handle unknown endpoints
 app.use((req, res, next) => {
-  const error = new Error("Route not found", req.method, req.originalUrl);
+  const error = new Error(`Route not found: ${req.method} ${req.originalUrl}`);
   error.statusCode = 404;
   next(error);
 });
