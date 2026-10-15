@@ -1,16 +1,17 @@
 import express from "express";
 import customerController from "../controllers/customerController.js";
+import  {protect, authorizeRoles}  from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/{:id}", customerController.getCustomer);
+router.get("/{:id}", protect ,customerController.getCustomer); // protect checks the token.
 
-router.post("/", customerController.createCustomer);
+router.post("/", protect, customerController.createCustomer);
 
-router.put("/:id", customerController.updateCustomer);
+router.put("/:id", protect, customerController.updateCustomer);
 
-router.patch("/:id", customerController.updateField);
+router.patch("/:id", protect, customerController.updateField);
 
-router.delete("/:id", customerController.deleteCustomer);
+router.delete("/:id", protect, authorizeRoles("admin"),customerController.deleteCustomer);
 
 export default router;
