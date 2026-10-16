@@ -1,4 +1,5 @@
 import Payment from "../models/Payment.js";
+import sendSuccess from "../utils/apiResponse.js";
 
 const getRevenueReport = async (req, res, next) => {
   try {
@@ -29,9 +30,7 @@ const getRevenueReport = async (req, res, next) => {
       totalPayment: 0,
     };
 
-    res.status(200).json({
-      success: true,
-      message: "Report fetched successfully",
+    return sendSuccess(res, "Report fetched successfully", {
       report: summary,
     });
   } catch (error) {

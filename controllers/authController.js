@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import sendSuccess from "../utils/apiResponse.js";
 
 const registerUser = async (req, res, next) => {
   try {
@@ -37,16 +38,19 @@ const registerUser = async (req, res, next) => {
       role: "staff",
     });
 
-    return res.status(201).json({
-      success: true,
-      message: "Registration successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
+    return sendSuccess(
+      res,
+      "Registration successful",
+      {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
       },
-    });
+      { status: 201 },
+    );
   } catch (error) {
     if (error.code === 11000) {
       const anotherRrror = new Error("Email is already registered");
@@ -103,9 +107,7 @@ const loginUser = async (req, res, next) => {
       },
     );
 
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
+    return sendSuccess(res, "Login successful", {
       token,
       user: {
         id: user._id,
@@ -113,7 +115,7 @@ const loginUser = async (req, res, next) => {
         email: user.email,
         role: user.role,
       },
-    })
+    });
     // Return the token and safe user details
   } catch (error) {
     next(error);
@@ -124,14 +126,10 @@ const fetchUser = async (req, res, next) => {
   try {
     const user = await User.find();
 
-    res.status(200).json({
-      success : true,
-      message: "User fetch successfully",
-      user
-    })
-  } catch(error) {
-
+    return sendSuccess(res, "User fetched successfully", { user });
+  } catch (error) {
+    next(error);
   }
-}
+};
 
 export default { registerUser, loginUser, fetchUser };

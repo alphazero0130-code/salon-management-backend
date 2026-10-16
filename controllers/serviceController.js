@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Service from "../models/Service.js";
+import sendSuccess from "../utils/apiResponse.js";
 
 const createService = async (req, res, next) => {
   try {
@@ -11,11 +12,12 @@ const createService = async (req, res, next) => {
       duration,
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Service added Successfully",
-      service,
-    });
+    return sendSuccess(
+      res,
+      "Service added successfully",
+      { service },
+      { status: 201 },
+    );
   } catch (error) {
     if (error.name === "ValidationError") {
       const validationError = new Error("Validation failed");
@@ -46,11 +48,7 @@ const getServices = async (req, res, next) => {
         return next(error);
       }
 
-      return res.status(200).json({
-        success: true,
-        message: "Service fetched successfully",
-        service,
-      });
+      return sendSuccess(res, "Service fetched successfully", { service });
     }
 
     const { search, status, sortBy } = req.query;
@@ -83,12 +81,10 @@ const getServices = async (req, res, next) => {
 
     const totalServices = await Service.countDocuments(filter);
 
-    res.status(200).json({
-      success: true,
-      message: "Services fetched successfully",
+    return sendSuccess(res, "Services fetched successfully", {
+      totalServices,
       //   page,
       //   limit,
-      totalServices,
       //   totalPages: Math.ceil(totalCustomers / limit),
       services,
     });
@@ -111,11 +107,7 @@ const updateService = async (req, res, next) => {
       error.statusCode = 404;
       return next(error);
     }
-    res.status(200).json({
-      success: true,
-      message: "Service updated successfully",
-      service,
-    });
+    return sendSuccess(res, "Service updated successfully", { service });
   } catch (error) {
     next(error);
   }
@@ -152,11 +144,7 @@ const updateField = async (req, res, next) => {
       return next(error);
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Service updated successfully",
-      service,
-    });
+    return sendSuccess(res, "Service updated successfully", { service });
   } catch (error) {
     next(error);
   }
@@ -177,11 +165,7 @@ const deleteService = async (req, res, next) => {
       return next(error);
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Service deleted successfully",
-      service,
-    });
+    return sendSuccess(res, "Service deleted successfully", { service });
   } catch (error) {
     next(error);
   }

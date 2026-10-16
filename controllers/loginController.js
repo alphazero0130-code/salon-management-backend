@@ -1,4 +1,5 @@
 import Customer from "../models/Customer.js";
+import sendSuccess from "../utils/apiResponse.js";
 
 const login = async (req, res, next) => {
   try {
@@ -23,9 +24,7 @@ const login = async (req, res, next) => {
 
     const token = `example-token-${Date.now()}`;
 
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
+    return sendSuccess(res, "Login successful", {
       customer,
     //   user: {
     //     id: customer._id.toString(),

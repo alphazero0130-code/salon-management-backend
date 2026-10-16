@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Customer from "../models/Customer.js";
+import sendSuccess from "../utils/apiResponse.js";
 
 const createCustomer = async (req, res, next) => {
   try {
@@ -12,11 +13,12 @@ const createCustomer = async (req, res, next) => {
       status,
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Customer created successfully",
-      customer,
-    });
+    return sendSuccess(
+      res,
+      "Customer created successfully",
+      { customer },
+      { status: 201 },
+    );
   } catch (error) {
     if (error.name === "ValidationError") {
       const validationError = new Error("Validation failed");
@@ -48,11 +50,7 @@ const getCustomer = async (req, res, next) => {
         return next(error);
       }
 
-      return res.status(200).json({
-        success: true,
-        message: "Customer fetched successfully",
-        customer,
-      });
+      return sendSuccess(res, "Customer fetched successfully", { customer });
     }
 
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -92,15 +90,19 @@ const getCustomer = async (req, res, next) => {
 
     const totalCustomers = await Customer.countDocuments(filter);
 
-    res.status(200).json({
-      success: true,
-      message: "Customers fetched successfully",
-      page,
-      limit,
-      totalCustomers,
-      totalPages: Math.ceil(totalCustomers / limit),
-      customers,
-    });
+    return sendSuccess(
+      res,
+      "Customers fetched successfully",
+      { customers },
+      {
+        pagination: {
+          page,
+          limit,
+          total: totalCustomers,
+          totalPages: Math.ceil(totalCustomers / limit),
+        },
+      },
+    );
   } catch (error) {
     next(error);
   }
@@ -121,11 +123,7 @@ const updateCustomer = async (req, res, next) => {
       return next(error);
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Customer updated successfully",
-      customer,
-    });
+    return sendSuccess(res, "Customer updated successfully", { customer });
   } catch (error) {
     next(error);
   }
@@ -163,11 +161,7 @@ const updateField = async (req, res, next) => {
       return next(error);
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Customer updated successfully",
-      customer,
-    });
+    return sendSuccess(res, "Customer updated successfully", { customer });
   } catch (error) {
     next(error);
   }
@@ -188,11 +182,7 @@ const deleteCustomer = async (req, res, next) => {
       return next(error);
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Customer deleted successfully",
-      customer,
-    });
+    return sendSuccess(res, "Customer deleted successfully", { customer });
   } catch (error) {
     next(error);
   }

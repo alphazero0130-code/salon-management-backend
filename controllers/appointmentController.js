@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Appointment from "../models/Appointment.js";
 import Service from "../models/Service.js";
+import sendSuccess from "../utils/apiResponse.js";
 
 const createAppointment = async (req, res, next) => {
   try {
@@ -18,11 +19,12 @@ const createAppointment = async (req, res, next) => {
       { path: "service", select: "name price" },
     ]);
 
-    res.status(201).json({
-      success: true,
-      message: "Appointment created successfully",
-      appointment,
-    });
+    return sendSuccess(
+      res,
+      "Appointment created successfully",
+      { appointment },
+      { status: 201 },
+    );
   } catch (error) {
     if (error.name === "ValidationError") {
       const validationError = new Error("Validation failed");
@@ -55,9 +57,7 @@ const getAppointment = async (req, res, next) => {
         return next(error);
       }
 
-      return res.status(200).json({
-        success: true,
-        message: "Appointment fetched successfully",
+      return sendSuccess(res, "Appointment fetched successfully", {
         appointment,
       });
     }
@@ -95,9 +95,7 @@ const getAppointment = async (req, res, next) => {
 
     const totalAppointment = await Appointment.countDocuments(filter);
 
-    res.status(200).json({
-      success: true,
-      message: "Appointment fetched successfully",
+    return sendSuccess(res, "Appointment fetched successfully", {
       //   page,
       //   limit,
       totalAppointment,
@@ -128,9 +126,7 @@ const updateAppointment = async (req, res, next) => {
       { path: "service", select: "name price" },
     ]);
 
-    res.status(200).json({
-      success: true,
-      message: "Appointment updated successfully",
+    return sendSuccess(res, "Appointment updated successfully", {
       appointment,
     });
   } catch (error) {
@@ -175,9 +171,7 @@ const updateField = async (req, res, next) => {
       { path: "service", select: "name price" },
     ]);
 
-    res.status(200).json({
-      success: true,
-      message: "Appointment updated successfully",
+    return sendSuccess(res, "Appointment updated successfully", {
       appointment,
     });
   } catch (error) {
@@ -205,9 +199,7 @@ const deleteAppointment = async (req, res, next) => {
       { path: "service", select: "name price" },
     ]);
 
-    res.status(200).json({
-      success: true,
-      message: "Appointment deleted successfully",
+    return sendSuccess(res, "Appointment deleted successfully", {
       appointment,
     });
   } catch (error) {
@@ -246,9 +238,7 @@ const getRevenueSummary = async (req, res, next) => {
       totalAppointment: 0,
     };
 
-    res.status(200).json({
-      success: true,
-      message: "Revenue fetch successfully",
+    return sendSuccess(res, "Revenue fetched successfully", {
       revenue: result.totalRevenue,
       completedAppointments: result.totalAppointment,
     });
@@ -298,9 +288,7 @@ const getRevenueByService = async (req, res, next) => {
       0,
     );
 
-    return res.status(200).json({
-      success: true,
-      message: "Revenue fetched successfully",
+    return sendSuccess(res, "Revenue fetched successfully", {
       totalRevenue,
       totalAppointments,
       report,

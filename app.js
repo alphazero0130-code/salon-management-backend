@@ -29,6 +29,7 @@ const apiLimiter = rateLimit({
   message: {
     success: false,
     message: "Too many request. Please try again later.",
+    data: null,
   },
 });
 

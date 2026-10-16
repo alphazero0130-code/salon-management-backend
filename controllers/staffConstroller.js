@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Staff from "../models/Staff.js";
+import sendSuccess from "../utils/apiResponse.js";
 
 const createStaff = async (req, res, next) => {
   try {
@@ -21,16 +22,19 @@ const createStaff = async (req, res, next) => {
       jobTitle,
     });
 
-    return res.status(201).json({
-      success: true,
-      message: "Staff added Successfully",
-      staff: {
-        id: staff._id,
-        name: staff.name,
-        email: staff.email,
-        jobTitle: staff.jobTitle,
+    return sendSuccess(
+      res,
+      "Staff added successfully",
+      {
+        staff: {
+          id: staff._id,
+          name: staff.name,
+          email: staff.email,
+          jobTitle: staff.jobTitle,
+        },
       },
-    });
+      { status: 201 },
+    );
   } catch (error) {
     if (error.name === "ValidationError") {
       const validationError = new Error("Validation Error");
@@ -63,11 +67,7 @@ const fetchStaff = async (req, res, next) => {
         return next(error);
       }
 
-      return res.status(200).json({
-        success: true,
-        message: "Staff data fetched successfully",
-        staff
-      });
+      return sendSuccess(res, "Staff data fetched successfully", { staff });
     }
 
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -97,15 +97,19 @@ const fetchStaff = async (req, res, next) => {
 
     const totalStaff = await Staff.countDocuments(filter);
 
-    res.status(200).json({
-      success: true,
-      message: "Staff data fetched successfully",
-      totalStaff,
-      page,
-      limit,
-      totalPages: Math.ceil(totalStaff / limit),
-      staff
-    });
+    return sendSuccess(
+      res,
+      "Staff data fetched successfully",
+      { staff },
+      {
+        pagination: {
+          page,
+          limit,
+          total: totalStaff,
+          totalPages: Math.ceil(totalStaff / limit),
+        },
+      },
+    );
   } catch (error) {
     next(error);
   }
