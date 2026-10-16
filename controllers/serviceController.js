@@ -3,12 +3,12 @@ import Service from "../models/Service.js";
 
 const createService = async (req, res, next) => {
   try {
-    const { serviceName, price, status } = req.body;
-
+    const { name, description, price, duration } = req.body;
     const service = await Service.create({
-      serviceName,
+      name,
+      description,
       price,
-      status,
+      duration,
     });
 
     res.status(201).json({
@@ -68,7 +68,7 @@ const getServices = async (req, res, next) => {
         error.statusCode = 400;
         return next(error);
       }
-      filter.status = status;
+      filter.isActive = status === "active";
     }
 
     const allowedSortFields = ["name", "createdAt"];
@@ -124,7 +124,7 @@ const updateService = async (req, res, next) => {
 const updateField = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const allowedField = ["serviceName", "price", "status"];
+    const allowedField = ["name", "description", "price", "duration", "isActive"];
     const update = {};
 
     for (const field of allowedField) {

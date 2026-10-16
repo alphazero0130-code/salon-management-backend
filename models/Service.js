@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const serviceSchema = new mongoose.Schema({
-  serviceName: {
+  name: {
     type: String,
     trim: true,
     required: [true, "Service Name is required"],
@@ -11,14 +11,20 @@ const serviceSchema = new mongoose.Schema({
     type: Number,
     required: [true, "Service Price is required"],
   },
-  status: {
-    type: String,
-    enum: {
-      values: ["active", "inactive"],
-      message: "Status must be either active or inactive",
+  duration: {
+      type: Number,
+      required: true,
+      min: 1,
     },
-    default: "active",
-  },
+   description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+   isActive: {
+      type: Boolean,
+      default: true,
+    },
 },
 {timestamps: true}
 );

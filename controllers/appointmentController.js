@@ -1,21 +1,21 @@
 import mongoose from "mongoose";
 import Appointment from "../models/Appointment.js";
+import Service from "../models/Service.js";
 
 const createAppointment = async (req, res, next) => {
   try {
-    const { customer, service, price, appointmentDate, status } = req.body;
+    const { customerId, serviceId, appointmentDate, notes } = req.body;
 
     const appointment = await Appointment.create({
-      customer,
-      service,
-      price,
+      customer: customerId,
+      service: serviceId,
       appointmentDate,
-      status,
+      notes,
     });
 
     await appointment.populate([
       { path: "customer", select: "name phone email" },
-      { path: "service", select: "serviceName price" },
+      { path: "service", select: "name price" },
     ]);
 
     res.status(201).json({
@@ -41,13 +41,13 @@ const getAppointment = async (req, res, next) => {
     const id = req.params?.id;
     if (id) {
       if (!mongoose.isObjectIdOrHexString(id)) {
-        const error = new Error("Customer id must be a valid MongoDB ObjectId");
+        const error = new Error("Appointment id must be a valid MongoDB ObjectId");
         error.statusCode = 400;
         return next(error);
       }
       const appointment = await Appointment.findById(id)
         .populate("customer", "name phone email")
-        .populate("service", "serviceName price");
+        .populate("service", "name price");
 
       if (!appointment) {
         const error = new Error("Appointment not found");
@@ -91,7 +91,7 @@ const getAppointment = async (req, res, next) => {
         _id: 1,
       })
       .populate("customer", "name phone email")
-      .populate("service", "serviceName price");
+      .populate("service", "name price");
 
     const totalAppointment = await Appointment.countDocuments(filter);
 
@@ -125,7 +125,7 @@ const updateAppointment = async (req, res, next) => {
     }
     await appointment.populate([
       { path: "customer", select: "name phone email" },
-      { path: "service", select: "serviceName price" },
+      { path: "service", select: "name price" },
     ]);
 
     res.status(200).json({
@@ -142,7 +142,7 @@ const updateField = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const allowedField = ["price", "appointmentDate", "status"];
+    const allowedField = ["appointmentDate", "status", "notes"];
     const update = {};
 
     for (const field of allowedField) {
@@ -172,7 +172,7 @@ const updateField = async (req, res, next) => {
 
     await appointment.populate([
       { path: "customer", select: "name phone email" },
-      { path: "service", select: "serviceName price" },
+      { path: "service", select: "name price" },
     ]);
 
     res.status(200).json({
@@ -202,7 +202,7 @@ const deleteAppointment = async (req, res, next) => {
 
     await appointment.populate([
       { path: "customer", select: "name phone email" },
-      { path: "service", select: "serviceName price" },
+      { path: "service", select: "name price" },
     ]);
 
     res.status(200).json({
@@ -224,9 +224,18 @@ const getRevenueSummary = async (req, res, next) => {
         },
       },
       {
+        $lookup: {
+          from: Service.collection.name,
+          localField: "service",
+          foreignField: "_id",
+          as: "service",
+        },
+      },
+      { $unwind: "$service" },
+      {
         $group: {
           _id: null,
-          totalRevenue: { $sum: "$price" },
+          totalRevenue: { $sum: "$service.price" },
           totalAppointment: { $sum: 1 },
         },
       },
@@ -257,9 +266,18 @@ const getRevenueByService = async (req, res, next) => {
         },
       },
       {
+        $lookup: {
+          from: Service.collection.name,
+          localField: "service",
+          foreignField: "_id",
+          as: "serviceDetails",
+        },
+      },
+      { $unwind: "$serviceDetails" },
+      {
         $group: {
           _id: "$service",
-          totalRevenue: { $sum: "$price" },
+          totalRevenue: { $sum: "$serviceDetails.price" },
           totalAppointments: { $sum: 1 },
         },
       },

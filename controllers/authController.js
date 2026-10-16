@@ -120,4 +120,18 @@ const loginUser = async (req, res, next) => {
   }
 };
 
-export default { registerUser, loginUser };
+const fetchUser = async (req, res, next) => {
+  try {
+    const user = await User.find();
+
+    res.status(200).json({
+      success : true,
+      message: "User fetch successfully",
+      user
+    })
+  } catch(error) {
+
+  }
+}
+
+export default { registerUser, loginUser, fetchUser };

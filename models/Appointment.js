@@ -13,11 +13,11 @@ const appointmentSchema = new mongoose.Schema(
       ref: "Service",
       required: true,
     },
-
-    price: {
-      type: Number,
-      required: true,
-      min: 0,
+    
+    staff: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Staff",
+      default: null
     },
 
     appointmentDate: {
@@ -29,6 +29,12 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       enum: ["booked", "completed", "cancelled"],
       default: "booked",
+    },
+
+    notes: {
+      type: String,
+      trim: true,
+      default: "",
     },
   },
   { timestamps: true },

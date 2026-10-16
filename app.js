@@ -7,6 +7,9 @@ import serviceRoutes from "./routes/serviceRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import loginRoutes from "./routes/loginRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger.js";
 
 const app = express();
 app.use(helmet());
@@ -37,7 +40,15 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/appointments", appointmentRoutes);
 
 
+
 app.use("/api/auth", authRoutes);
+app.use("/api/reports", reportRoutes);
+
+// app.use(
+//   "/api-docs",
+//   swaggerUi.serve,
+//   swaggerUi.setup(swaggerSpec)
+// );
 
 // Handle unknown endpoints
 app.use((req, res, next) => {
