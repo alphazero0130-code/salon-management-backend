@@ -18,7 +18,7 @@ const createStaff = async (req, res, next) => {
 
     const staff = await Staff.create({
       name,
-      email,
+      email: normalizedEmail,
       jobTitle,
     });
 
@@ -111,8 +111,109 @@ const fetchStaff = async (req, res, next) => {
       },
     );
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
-export default { createStaff, fetchStaff };
+const updateStaff = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Staff id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const staff = await Staff.findByIdAndUpdate(id, req.body, {
+      returnDocument: "after",
+      runValidators: true,
+    });
+
+    if (!staff) {
+      const error = new Error("Staff not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    return sendSuccess(res, "Staff updated successfully", { staff });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const updateEachField = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Staff id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const allowedField = ["name", "email", "jobTitle"];
+    const update = {};
+
+    for (const field of allowedField) {
+      if (req.body?.[field] != undefined) {
+        update[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(update).length === 0) {
+      const error = new Error(
+        "Please provide at least one valid field to update",
+      );
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const staff = await Staff.findByIdAndUpdate(id, update, {
+      returnDocument: "after",
+      runValidators: true,
+    });
+
+    if (!staff) {
+      const error = new Error("Staff not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    return sendSuccess(res, "Staff updated successfully", { staff });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const deleteStaff = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Staff id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const staff = await Staff.findByIdAndDelete(id);
+
+    if (!staff) {
+      const error = new Error("Staff not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    return sendSuccess(res, "Staff deleted successfully", { staff });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export default {
+  createStaff,
+  fetchStaff,
+  updateStaff,
+  updateEachField,
+  deleteStaff,
+};

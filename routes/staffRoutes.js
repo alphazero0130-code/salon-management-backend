@@ -11,5 +11,8 @@ router.get(
   staffConstroller.fetchStaff,
 );
 router.post("/", protect, authorizeRoles("staff"), staffConstroller.createStaff);
+router.put("/:id", protect, authorizeRoles("staff"), staffConstroller.updateStaff);
+router.patch("/:id", protect, authorizeRoles("staff"), staffConstroller.updateEachField);
+router.delete("/:id", protect, authorizeRoles("staff"), staffConstroller.deleteStaff);
 
 export default router;
