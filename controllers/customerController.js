@@ -84,6 +84,7 @@ const getCustomer = async (req, res, next) => {
     const selectedSort = allowedSortFields.includes(sortBy)
       ? sortBy
       : "createdAt";
+      
     const customers = await Customer.find(filter)
       .sort({ [selectedSort]: selectedSort === "name" ? 1 : -1, _id: 1 })
       .skip((page - 1) * limit)
