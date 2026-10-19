@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -100,7 +101,7 @@ const loginUser = async (req, res, next) => {
       {
         role: user.role,
       },
-      process.env.JWT_SECRET, // The secret is used to create and verify tokens; the actual token is generated when the user logs in. 
+      process.env.JWT_SECRET, // The secret is used to create and verify tokens; the actual token is generated when the user logs in.
       {
         subject: user._id.toString(), // subject identifies the user by their MongoDB ID.
         expiresIn: process.env.JWT_EXPIRES_IN || "1h",
@@ -132,4 +133,106 @@ const fetchUser = async (req, res, next) => {
   }
 };
 
-export default { registerUser, loginUser, fetchUser };
+const updateUserRole = async (req, res, next) => {
+  try {
+    const { userId, roleType } = req.body ?? {};
+
+    if (!mongoose.isObjectIdOrHexString(userId)) {
+      const error = new Error("userId must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (!["admin", "staff"].includes(roleType)) {
+      const error = new Error("roleType must be either admin or staff");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role: roleType },
+      { returnDocument: "after", runValidators: true },
+    );
+
+    if (!user) {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    return sendSuccess(res, "User role updated successfully", {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateUserPassword = async (req, res, next) => {
+  try {
+    const { userId, newPassword, confirmPassword } = req.body ?? {};
+
+    if (!mongoose.isObjectIdOrHexString(userId)) {
+      const error = new Error("userId must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (!newPassword || !confirmPassword) {
+      const error = new Error("newPassword and confirmPassword are required");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (newPassword !== confirmPassword) {
+      const error = new Error(
+        "newPassword and confirmPassword must match",
+      );
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (newPassword.length < 8) {
+      const error = new Error("Password must be at least 8 characters");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { password: hashedPassword },
+      { returnDocument: "after", runValidators: true },
+    );
+
+    if (!user) {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    return sendSuccess(res, "Password updated successfully", {
+      user: {
+        id: user._id,
+        name: user.name,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export default {
+  registerUser,
+  loginUser,
+  fetchUser,
+  updateUserRole,
+  updateUserPassword,
+};

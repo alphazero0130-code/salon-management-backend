@@ -1,5 +1,6 @@
 import express from "express";
 import  authController  from "../controllers/authController.js";
+import { authorizeRoles, protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -75,5 +76,88 @@ router.post("/login", authController.loginUser);
  *         description: Users fetched successfully
  */
 router.get("/user", authController.fetchUser);
+
+/**
+ * @swagger
+ * /api/auth/user/role:
+ *   patch:
+ *     summary: Update a user's role (admin only)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, roleType]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               roleType:
+ *                 type: string
+ *                 enum: [admin, staff]
+ *     responses:
+ *       200:
+ *         description: User role updated successfully
+ *       400:
+ *         description: Invalid userId or roleType
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Admin role required
+ *       404:
+ *         description: User not found
+ */
+router.patch(
+  "/user/role",
+  protect,
+  authorizeRoles("admin"),
+  authController.updateUserRole,
+);
+
+/**
+ * @swagger
+ * /api/auth/user/password:
+ *   patch:
+ *     summary: Update a user's password (admin only)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, newPassword, confirmPassword]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *               confirmPassword:
+ *                 type: string
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Invalid password or userId
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Admin role required
+ *       404:
+ *         description: User not found
+ */
+router.patch(
+  "/user/password",
+  protect,
+  authorizeRoles("admin"),
+  authController.updateUserPassword,
+);
 
 export default router;

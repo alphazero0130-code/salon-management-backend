@@ -9,7 +9,12 @@ const paymentSchema = new mongoose.Schema(
       required: [true, "Appointment is required"],
       unique: true,
     },
-
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      res: "User",
+      required: [true, "User detail is required"],
+      unique: true
+    },
     amount: {
       type: Number,
       required: [true, "Payment amount is required"],

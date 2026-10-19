@@ -5,18 +5,20 @@ import sendSuccess from "../utils/apiResponse.js";
 
 const createAppointment = async (req, res, next) => {
   try {
-    const { customerId, serviceId, appointmentDate, notes } = req.body;
+    const { userId, serviceId, staffId, appointmentDate, notes } = req.body;
 
     const appointment = await Appointment.create({
-      customer: customerId,
+      user: userId,
       service: serviceId,
+      staff: staffId,
       appointmentDate,
       notes,
     });
 
     await appointment.populate([
-      { path: "customer", select: "name phone email" },
+      { path: "user", select: "name phone email" },
       { path: "service", select: "name price" },
+      { path: "staff", select: "name jobTitle" },
     ]);
 
     return sendSuccess(
@@ -48,8 +50,9 @@ const getAppointment = async (req, res, next) => {
         return next(error);
       }
       const appointment = await Appointment.findById(id)
-        .populate("customer", "name phone email")
-        .populate("service", "name price");
+        .populate("user", "name phone email")
+        .populate("service", "name price")
+        .populate("staff", "name jobTitle");
 
       if (!appointment) {
         const error = new Error("Appointment not found");
@@ -90,8 +93,9 @@ const getAppointment = async (req, res, next) => {
         [selectedSort]: selectedSort === "name" ? 1 : -1,
         _id: 1,
       })
-      .populate("customer", "name phone email")
-      .populate("service", "name price");
+      .populate("user", "name phone email")
+      .populate("service", "name price")
+      .populate("staff", "name jobTitle");
 
     const totalAppointment = await Appointment.countDocuments(filter);
 
@@ -122,8 +126,9 @@ const updateAppointment = async (req, res, next) => {
       return next(error);
     }
     await appointment.populate([
-      { path: "customer", select: "name phone email" },
+      { path: "user", select: "name phone email" },
       { path: "service", select: "name price" },
+      { path: "staff", select: "name jobTitle" },
     ]);
 
     return sendSuccess(res, "Appointment updated successfully", {
@@ -167,8 +172,9 @@ const updateField = async (req, res, next) => {
     }
 
     await appointment.populate([
-      { path: "customer", select: "name phone email" },
+      { path: "user", select: "name phone email" },
       { path: "service", select: "name price" },
+      { path: "staff", select: "name jobTitle" },
     ]);
 
     return sendSuccess(res, "Appointment updated successfully", {
@@ -195,8 +201,9 @@ const deleteAppointment = async (req, res, next) => {
     }
 
     await appointment.populate([
-      { path: "customer", select: "name phone email" },
+      { path: "user", select: "name phone email" },
       { path: "service", select: "name price" },
+      { path: "staff", select: "name jobTitle" },
     ]);
 
     return sendSuccess(res, "Appointment deleted successfully", {
