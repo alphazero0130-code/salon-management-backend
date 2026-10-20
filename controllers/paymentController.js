@@ -8,17 +8,18 @@ const getPayment = async (req, res, next) => {
     const filter = type ? { type } : {};
 
     const payments = await Payment.find(filter);
+    const totalPayment = await Payment.countDocuments(filter);
 
-    if (payments.length === 0) {
-      const error = new Error("Payment detail not found");
-      error.statusCode = 200;
+    if(payments.length === 0) {
+      const error = new Error("No payment details found");
+      error.statusCode = 404;
       return next(error);
     }
 
     return sendSuccess(
       res,
       "Payment details fetched successfully",
-      payments
+      { totalPayment, payments },
     );
   } catch (error) {
     next(error);

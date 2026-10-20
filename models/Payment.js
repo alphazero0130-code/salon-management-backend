@@ -7,13 +7,17 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       trim: true,
       required: [true, "Payment type is required"],
-      default: "appointment",
+      default: "appointments",
     },
-    id: {
+    itemId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Appointment",
-      required: [true, "Appointment is required"],
+      refPath: "itemModel",
+      required: [true, "Payment item is required"],
       unique: true,
+    },
+    itemModel: {
+      type: String,
+      required: [true, "Payment item model is required"],
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,

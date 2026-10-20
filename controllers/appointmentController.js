@@ -24,8 +24,9 @@ const createAppointment = async (req, res, next) => {
     });
 
     const payment = await Payment.create({
-      type: "appointment",
-      id: appointment._id,
+      type: "reports",
+      itemId: appointment._id,
+      itemModel: "Report",
       user: userId,
       amount: service.price,
       status: "pending",
