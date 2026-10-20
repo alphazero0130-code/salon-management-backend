@@ -1,11 +1,19 @@
 import mongoose from "mongoose";
 import Appointment from "../models/Appointment.js";
 import Service from "../models/Service.js";
+import Payment from "../models/Payment.js";
 import sendSuccess from "../utils/apiResponse.js";
 
 const createAppointment = async (req, res, next) => {
   try {
     const { userId, serviceId, staffId, appointmentDate, notes } = req.body;
+
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      const error = new Error("Service not found");
+      error.statusCode = 404;
+      return next(error);
+    }
 
     const appointment = await Appointment.create({
       user: userId,
@@ -13,6 +21,14 @@ const createAppointment = async (req, res, next) => {
       staff: staffId,
       appointmentDate,
       notes,
+    });
+
+    const payment = await Payment.create({
+      type: "appointment",
+      id: appointment._id,
+      user: userId,
+      amount: service.price,
+      status: "pending",
     });
 
     await appointment.populate([
@@ -24,7 +40,7 @@ const createAppointment = async (req, res, next) => {
     return sendSuccess(
       res,
       "Appointment created successfully",
-      { appointment },
+      { appointment, payment },
       { status: 201 },
     );
   } catch (error) {
@@ -40,12 +56,24 @@ const createAppointment = async (req, res, next) => {
   }
 };
 
+// const getPayment = async (req, res, next) => {
+//   try {
+//     const payments = await Payment.find();
+  
+//     return sendSuccess(res, "Payment fetched successfully", payments);
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 const getAppointment = async (req, res, next) => {
   try {
     const id = req.params?.id;
     if (id) {
       if (!mongoose.isObjectIdOrHexString(id)) {
-        const error = new Error("Appointment id must be a valid MongoDB ObjectId");
+        const error = new Error(
+          "Appointment id must be a valid MongoDB ObjectId",
+        );
         error.statusCode = 400;
         return next(error);
       }

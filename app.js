@@ -11,6 +11,7 @@ import reportRoutes from "./routes/reportRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import staffRoutes from "./routes/staffRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 app.use(helmet());
@@ -40,6 +41,7 @@ app.use("/api", loginRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);

@@ -3,7 +3,13 @@ import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
   {
-    appointment: {
+    type: {
+      type: String,
+      trim: true,
+      required: [true, "Payment type is required"],
+      default: "appointment",
+    },
+    id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Appointment",
       required: [true, "Appointment is required"],
@@ -11,9 +17,8 @@ const paymentSchema = new mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      res: "User",
+      ref: "User",
       required: [true, "User detail is required"],
-      unique: true
     },
     amount: {
       type: Number,
@@ -27,14 +32,16 @@ const paymentSchema = new mongoose.Schema(
         values: ["cash", "card", "upi"],
         message: "Payment method must be cash, card, or UPI",
       },
-      required: [true, "Payment method is required"],
+      required: function () {
+        return this.status === "paid";
+      },
     },
 
     status: {
       type: String,
       enum: {
-        values: ["pending", "paid", "refunded"],
-        message: "Payment status must be pending, paid, or refunded",
+        values: ["pending", "paid", "failed", "refunded"],
+        message: "Payment status must be pending, paid, failed, or refunded",
       },
       default: "pending",
     },
