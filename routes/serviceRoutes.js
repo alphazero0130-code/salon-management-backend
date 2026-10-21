@@ -7,7 +7,7 @@ const router = express.Router();
 router.post("/", protect, authorizeRoles("admin"),serviceController.createService);
 router.get("/", protect, serviceController.getServices);
 router.get("/:id", protect, serviceController.getServices);
-router.put("/:id", authorizeRoles("admin"),protect, serviceController.updateService);
+router.put("/:id",protect,  authorizeRoles("admin"), serviceController.updateService);
 router.patch("/:id", authorizeRoles("admin"),protect, serviceController.updateField);
 router.delete("/:id", protect, authorizeRoles("admin"), serviceController.deleteService);
 

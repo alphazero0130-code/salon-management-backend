@@ -5,7 +5,6 @@ import errorHandler from "./middleware/errorHandler.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
-import loginRoutes from "./routes/loginRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import swaggerUi from "swagger-ui-express";
@@ -37,7 +36,6 @@ const apiLimiter = rateLimit({
 app.use(apiLimiter);
 
 //Register APIs Routes
-app.use("/api", loginRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/appointments", appointmentRoutes);

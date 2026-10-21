@@ -6,15 +6,21 @@ const router = express.Router();
 
 router.get(
   "/",
-  // protect,
-  // authorizeRoles("admin"),
+  protect,
+  authorizeRoles("admin"),
   paymentController.getPayment,
 );
 router.get(
   "/:type",
-  // protect,
-  // authorizeRoles("admin"),
+  protect,
+  authorizeRoles("admin"),
   paymentController.getPayment,
+);
+router.patch(
+  "/:id/status",
+  protect,
+  authorizeRoles("admin"),
+  paymentController.updatePaymentStatus,
 );
 
 export default router;

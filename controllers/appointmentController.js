@@ -24,9 +24,9 @@ const createAppointment = async (req, res, next) => {
     });
 
     const payment = await Payment.create({
-      type: "reports",
+      type: "appointments",
       itemId: appointment._id,
-      itemModel: "Report",
+      itemModel: "Appointment",
       user: userId,
       amount: service.price,
       status: "pending",
@@ -98,7 +98,7 @@ const getAppointment = async (req, res, next) => {
 
     if (search) {
       const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.search = { $regex: escapedSearch, $options: "i" };
+      filter.notes = { $regex: escapedSearch, $options: "i" };
     }
 
     if (status) {
