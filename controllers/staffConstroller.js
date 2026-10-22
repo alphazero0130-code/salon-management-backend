@@ -61,13 +61,13 @@ const fetchStaff = async (req, res, next) => {
 
       const staff = await Staff.findById(id);
 
-      if (!staff) {
-        const error = new Error("Staff not found");
-        error.statusCode = 404;
+         if (staff.length === 0 ) {
+        const error = new Error("No staff detail found");
+        error.statusCode = 200;
         return next(error);
       }
 
-      return sendSuccess(res, "Staff data fetched successfully", { staff });
+      return sendSuccess(res, "Staff fetched successfully", { staff });
     }
 
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);

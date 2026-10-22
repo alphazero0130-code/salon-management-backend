@@ -88,6 +88,12 @@ const getCustomer = async (req, res, next) => {
       .skip((page - 1) * limit)
       .limit(limit);
 
+   if (customers.length === 0 ) {
+        const error = new Error("No customer detail found");
+        error.statusCode = 200;
+        return next(error);
+      }
+
     const totalCustomers = await Customer.countDocuments(filter);
 
     return sendSuccess(

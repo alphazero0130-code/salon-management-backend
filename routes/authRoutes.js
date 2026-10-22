@@ -75,7 +75,7 @@ router.post("/login", authController.loginUser);
  *       200:
  *         description: Users fetched successfully
  */
-router.get("/user", authorizeRoles("admin"), authController.fetchUser);
+router.get("/user",protect ,authorizeRoles("admin"), authController.fetchUser);
 
 /**
  * @swagger

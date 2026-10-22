@@ -127,6 +127,12 @@ const fetchUser = async (req, res, next) => {
   try {
     const user = await User.find();
 
+ if (user.length === 0 ) {
+        const error = new Error("No user detail found");
+        error.statusCode = 200;
+        return next(error);
+      }
+
     return sendSuccess(res, "User fetched successfully", { user });
   } catch (error) {
     next(error);

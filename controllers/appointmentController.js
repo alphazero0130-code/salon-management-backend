@@ -83,9 +83,9 @@ const getAppointment = async (req, res, next) => {
         .populate("service", "name price")
         .populate("staff", "name jobTitle");
 
-      if (!appointment) {
-        const error = new Error("Appointment not found");
-        error.statusCode = 404;
+      if (appointment.length === 0 ) {
+        const error = new Error("No appointment detail found");
+        error.statusCode = 200;
         return next(error);
       }
 

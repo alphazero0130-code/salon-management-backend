@@ -30,6 +30,12 @@ const getRevenueReport = async (req, res, next) => {
       totalPayment: 0,
     };
 
+       if (report.length === 0 ) {
+        const error = new Error("No report detail found");
+        error.statusCode = 200;
+        return next(error);
+      }
+
     return sendSuccess(res, "Report fetched successfully", {
       report: summary,
     });

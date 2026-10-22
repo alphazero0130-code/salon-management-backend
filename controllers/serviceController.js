@@ -42,9 +42,9 @@ const getServices = async (req, res, next) => {
       }
       const service = await Service.findById(id);
 
-      if (!service) {
-        const error = new Error("Service not found");
-        error.statusCode = 404;
+       if (service.length === 0 ) {
+        const error = new Error("No service detail found");
+        error.statusCode = 200;
         return next(error);
       }
 
