@@ -29,6 +29,11 @@ const staffSchema = new mongoose.Schema(
       minlength: [2, "Job title must be at least 2 characters long"],
       maxlength: [50, "Job title cannot exceed 50 characters"],
     },
+    
+    isAvailable: {
+      type: Boolean,
+      default: true
+    },
 
     isActive: {
       type: Boolean,

@@ -11,6 +11,7 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
 
 const app = express();
 app.use(helmet());
@@ -44,6 +45,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/admin/dashboard", adminDashboardRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
