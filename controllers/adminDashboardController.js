@@ -62,6 +62,12 @@ const getDashboardStats = async (req, res, next) => {
       },
     ]);
 
+    if (totalCustomers === 0 && totalStaff === 0 && todayAppointments === 0) {
+      const error = new Error("No dashboard data found");
+      error.statusCode = 200;
+      return next(error);
+    }
+
     const result = revenue[0] || { totalRevenue: 0 };
 
     return sendSuccess(res, "Dashboard statistics fetched successfully", {

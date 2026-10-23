@@ -61,7 +61,7 @@ const fetchStaff = async (req, res, next) => {
 
       const staff = await Staff.findById(id);
 
-         if (staff.length === 0 ) {
+         if (!staff) {
         const error = new Error("No staff detail found");
         error.statusCode = 200;
         return next(error);
@@ -96,6 +96,12 @@ const fetchStaff = async (req, res, next) => {
       .limit(limit);
 
     const totalStaff = await Staff.countDocuments(filter);
+
+    if (totalStaff === 0) {
+      const error = new Error("No staff found");
+      error.statusCode = 200;
+      return next(error);
+    }
 
     return sendSuccess(
       res,

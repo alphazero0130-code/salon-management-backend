@@ -22,6 +22,12 @@ const getPayment = async (req, res, next) => {
 
     const totalPayment = await Payment.countDocuments(filter);
 
+    if (totalPayment === 0) {
+      const error = new Error("No payment found");
+      error.statusCode = 200;
+      return next(error);
+    }
+
     return sendSuccess(
       res,
       "Payment details fetched successfully",

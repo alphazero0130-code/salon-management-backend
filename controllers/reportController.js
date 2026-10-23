@@ -27,6 +27,12 @@ const getRevenueReport = async (req, res, next) => {
       },
     ]);
 
+    if (report.length === 0) {
+      const error = new Error("No report data found");
+      error.statusCode = 200;
+      return next(error);
+    }
+
     const summary = report[0] ?? {
       totalRevenue: 0,
       totalPayment: 0,

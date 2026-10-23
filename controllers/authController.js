@@ -8,7 +8,7 @@ const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name?.trim() || !email.trim() || !password.trim()) {
+    if (!name?.trim() || !email?.trim() || !password?.trim()) {
       const error = new Error("Name, email and password are required");
       error.statusCode = 400;
       return next(error);
@@ -67,7 +67,7 @@ const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email?.trim() || !password.trim()) {
+    if (!email?.trim() || !password?.trim()) {
       const error = new Error("email and password are required");
       error.statusCode = 400;
       return next(error);
@@ -134,13 +134,13 @@ const fetchUser = async (req, res, next) => {
     const user = await User.find().skip((page - 1) * limit)
       .limit(limit);
 
-    
+    const totalUser = await User.countDocuments();
 
- if (user.length === 0 ) {
-        const error = new Error("No user detail found");
-        error.statusCode = 200;
-        return next(error);
-      }
+    if (totalUser === 0) {
+      const error = new Error("No user found");
+      error.statusCode = 200;
+      return next(error);
+    }
 
     return sendSuccess(res, "User fetched successfully", { user });
   } catch (error) {

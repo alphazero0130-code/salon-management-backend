@@ -8,6 +8,24 @@ const createAppointment = async (req, res, next) => {
   try {
     const { userId, serviceId, staffId, appointmentDate, notes } = req.body;
 
+    if (!mongoose.isObjectIdOrHexString(userId)) {
+      const error = new Error("userId must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (!mongoose.isObjectIdOrHexString(serviceId)) {
+      const error = new Error("serviceId must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (staffId !== undefined && staffId !== null && !mongoose.isObjectIdOrHexString(staffId)) {
+      const error = new Error("staffId must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const service = await Service.findById(serviceId);
     if (!service) {
       const error = new Error("Service not found");
@@ -83,7 +101,7 @@ const getAppointment = async (req, res, next) => {
         .populate("service", "name price")
         .populate("staff", "name jobTitle");
 
-      if (appointment.length === 0 ) {
+      if (!appointment) {
         const error = new Error("No appointment detail found");
         error.statusCode = 200;
         return next(error);
@@ -109,9 +127,9 @@ const getAppointment = async (req, res, next) => {
     }
 
     if (status) {
-      if (!["booked", "completed", "cancelled"].includes(status)) {
+      if (!["booked", "completed", "cancelled", "pending"].includes(status)) {
         const error = new Error(
-          "Status must be either booked, completed or cancelled",
+          "Status must be either booked, completed, cancelled or pending",
         );
         error.statusCode = 400;
         return next(error);
@@ -136,6 +154,12 @@ const getAppointment = async (req, res, next) => {
 
     const totalAppointment = await Appointment.countDocuments(filter);
 
+    if (totalAppointment === 0) {
+      const error = new Error("No appointment found");
+      error.statusCode = 200;
+      return next(error);
+    }
+
     return sendSuccess(
       res,
       "Appointment fetched successfully",
@@ -157,6 +181,12 @@ const getAppointment = async (req, res, next) => {
 const updateAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Appointment id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
 
     const appointment = await Appointment.findByIdAndUpdate(id, req.body, {
       returnDocument: "after",
@@ -185,6 +215,12 @@ const updateAppointment = async (req, res, next) => {
 const updateField = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Appointment id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
 
     const allowedField = ["appointmentDate", "status", "notes"];
     const update = {};
@@ -232,6 +268,12 @@ const deleteAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Appointment id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const appointment = await Appointment.findByIdAndDelete(id, {
       returnDocument: "after",
       runValidators: true,
@@ -262,7 +304,7 @@ const getRevenueSummary = async (req, res, next) => {
     const summary = await Appointment.aggregate([
       {
         $match: {
-          status: "booked",
+          status: "completed",
         },
       },
       {
@@ -327,6 +369,12 @@ const getRevenueByService = async (req, res, next) => {
         },
       },
     ]);
+
+    if (report.length === 0) {
+      const error = new Error("No revenue data found");
+      error.statusCode = 200;
+      return next(error);
+    }
 
     const totalRevenue = report.reduce(
       (sum, item) => sum + item.totalRevenue,

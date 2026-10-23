@@ -88,13 +88,13 @@ const getCustomer = async (req, res, next) => {
       .skip((page - 1) * limit)
       .limit(limit);
 
-   if (customers.length === 0 ) {
-        const error = new Error("No customer detail found");
-        error.statusCode = 200;
-        return next(error);
-      }
-
     const totalCustomers = await Customer.countDocuments(filter);
+
+    if (totalCustomers === 0) {
+      const error = new Error("No customer found");
+      error.statusCode = 200;
+      return next(error);
+    }
 
     return sendSuccess(
       res,
@@ -118,6 +118,12 @@ const updateCustomer = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Customer id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const customer = await Customer.findByIdAndUpdate(id, req.body, {
       returnDocument: "after",
       runValidators: true,
@@ -138,6 +144,12 @@ const updateCustomer = async (req, res, next) => {
 const updateField = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Customer id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
 
     const allowedFields = ["name", "phone", "email"];
     const update = {};
@@ -176,6 +188,12 @@ const updateField = async (req, res, next) => {
 const deleteCustomer = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      const error = new Error("Customer id must be a valid MongoDB ObjectId");
+      error.statusCode = 400;
+      return next(error);
+    }
 
     const customer = await Customer.findByIdAndDelete(id, {
       returnDocument: "after",

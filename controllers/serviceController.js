@@ -43,7 +43,7 @@ const getServices = async (req, res, next) => {
       }
       const service = await Service.findById(id);
 
-       if (service.length === 0 ) {
+       if (!service) {
         const error = new Error("No service detail found");
         error.statusCode = 200;
         return next(error);
@@ -88,6 +88,12 @@ const getServices = async (req, res, next) => {
       .limit(limit);
 
     const totalServices = await Service.countDocuments(filter);
+
+    if (totalServices === 0) {
+      const error = new Error("No service found");
+      error.statusCode = 200;
+      return next(error);
+    }
 
     return sendSuccess(
       res,
