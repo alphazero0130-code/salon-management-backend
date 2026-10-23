@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Payment from "../models/Payment.js";
+import Appointment from "../models/Appointment.js";
 import sendSuccess from "../utils/apiResponse.js";
 
 const getPayment = async (req, res, next) => {
@@ -85,7 +86,21 @@ const updatePaymentStatus = async (req, res, next) => {
 
     await payment.save();
 
-    return sendSuccess(res, "Payment status updated successfully", { payment });
+    // Keep the linked Appointment's payment summary in sync with the
+    // authoritative Payment record so the two can never disagree.
+    let appointment = null;
+    if (payment.itemModel === "Appointment") {
+      appointment = await Appointment.findByIdAndUpdate(
+        payment.itemId,
+        { payment: status },
+        { returnDocument: "after", runValidators: true },
+      );
+    }
+
+    return sendSuccess(res, "Payment status updated successfully", {
+      payment,
+      appointment,
+    });
   } catch (error) {
     if (error.name === "ValidationError") {
       const validationError = new Error("Validation failed");

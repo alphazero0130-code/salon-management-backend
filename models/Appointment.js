@@ -40,8 +40,8 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       trim: true,
       enum: {
-        values: ["paid", "failed", "pending"],
-        message: "Payment must be paid, failed, or pending",
+        values: ["paid", "failed", "pending", "refunded"],
+        message: "Payment must be paid, failed, pending, or refunded",
       },
       default: "pending",
     },

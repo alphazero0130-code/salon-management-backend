@@ -8,7 +8,7 @@ router.post("/", protect, authorizeRoles("admin"),serviceController.createServic
 router.get("/", protect, serviceController.getServices);
 router.get("/:id", protect, serviceController.getServices);
 router.put("/:id",protect,  authorizeRoles("admin"), serviceController.updateService);
-router.patch("/:id", authorizeRoles("admin"),protect, serviceController.updateField);
+router.patch("/:id",protect,  authorizeRoles("admin"), serviceController.updateField);
 router.delete("/:id", protect, authorizeRoles("admin"), serviceController.deleteService);
 
 export default router;
