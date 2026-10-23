@@ -14,6 +14,7 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(express.json({ limit: "100kb" }));
 
@@ -24,7 +25,7 @@ app.use((req, res, next) => {
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 100,
+  limit: process.env.NODE_ENV === "production" ? 100 : 1000,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: {
@@ -34,7 +35,7 @@ const apiLimiter = rateLimit({
   },
 });
 
-app.use(apiLimiter);
+app.use("/api", apiLimiter);
 
 //Register APIs Routes
 app.use("/api/customers", customerRoutes);

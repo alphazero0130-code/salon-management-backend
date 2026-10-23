@@ -3,6 +3,8 @@ import sendSuccess from "../utils/apiResponse.js";
 
 const getRevenueReport = async (req, res, next) => {
   try {
+    // This endpoint returns a single aggregated summary (one grouped result),
+    // so pagination does not apply here.
     const report = await Payment.aggregate([
       {
         $match: {
@@ -29,12 +31,6 @@ const getRevenueReport = async (req, res, next) => {
       totalRevenue: 0,
       totalPayment: 0,
     };
-
-       if (report.length === 0 ) {
-        const error = new Error("No report detail found");
-        error.statusCode = 200;
-        return next(error);
-      }
 
     return sendSuccess(res, "Report fetched successfully", {
       report: summary,

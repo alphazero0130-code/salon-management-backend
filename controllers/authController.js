@@ -125,7 +125,16 @@ const loginUser = async (req, res, next) => {
 
 const fetchUser = async (req, res, next) => {
   try {
-    const user = await User.find();
+     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+
+    const limit = Math.min(
+      100,
+      Math.max(1, Number.parseInt(req.query.limit, 10) || 10),
+    );
+    const user = await User.find().skip((page - 1) * limit)
+      .limit(limit);
+
+    
 
  if (user.length === 0 ) {
         const error = new Error("No user detail found");

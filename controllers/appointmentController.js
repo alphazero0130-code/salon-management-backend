@@ -93,6 +93,13 @@ const getAppointment = async (req, res, next) => {
         appointment,
       });
     }
+     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+
+    const limit = Math.min(
+      100,
+      Math.max(1, Number.parseInt(req.query.limit, 10) || 10),
+    );
+
     const { search, status, sortBy } = req.query;
     const filter = {};
 
@@ -112,29 +119,36 @@ const getAppointment = async (req, res, next) => {
       filter.status = status;
     }
 
-    const allowedSortFields = ["name", "createdAt"];
+    const allowedSortFields = ["createdAt", "appointmentDate", "status"];
     const selectedSort = allowedSortFields.includes(sortBy)
       ? sortBy
       : "createdAt";
 
     const appointments = await Appointment.find(filter)
       .sort({
-        [selectedSort]: selectedSort === "name" ? 1 : -1,
+        [selectedSort]: -1,
         _id: 1,
-      })
+      }).skip((page - 1) * limit)
+      .limit(limit)
       .populate("user", "name phone email")
       .populate("service", "name price")
       .populate("staff", "name jobTitle");
 
     const totalAppointment = await Appointment.countDocuments(filter);
 
-    return sendSuccess(res, "Appointment fetched successfully", {
-      //   page,
-      //   limit,
-      totalAppointment,
-      //   totalPages: Math.ceil(totalCustomers / limit),
-      appointments,
-    });
+    return sendSuccess(
+      res,
+      "Appointment fetched successfully",
+      { appointments },
+      {
+        pagination: {
+          page,
+          limit,
+          total: totalAppointment,
+          totalPages: Math.ceil(totalAppointment / limit),
+        },
+      },
+    );
   } catch (error) {
     next(error);
   }

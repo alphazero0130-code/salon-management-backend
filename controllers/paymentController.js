@@ -7,20 +7,33 @@ const getPayment = async (req, res, next) => {
     const type = req.params.type?.trim();
 
     const filter = type ? { type } : {};
+    
+     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
 
-    const payments = await Payment.find(filter);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number.parseInt(req.query.limit, 10) || 10),
+    );
+
+    const payments = await Payment.find(filter)
+      .sort({ createdAt: -1, _id: 1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
     const totalPayment = await Payment.countDocuments(filter);
-
-    if(payments.length === 0) {
-      const error = new Error("No payment details found");
-      error.statusCode = 404;
-      return next(error);
-    }
 
     return sendSuccess(
       res,
       "Payment details fetched successfully",
-      { totalPayment, payments },
+      { payments },
+      {
+        pagination: {
+          page,
+          limit,
+          total: totalPayment,
+          totalPages: Math.ceil(totalPayment / limit),
+        },
+      },
     );
   } catch (error) {
     next(error);

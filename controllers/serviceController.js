@@ -5,6 +5,7 @@ import sendSuccess from "../utils/apiResponse.js";
 const createService = async (req, res, next) => {
   try {
     const { name, description, price, duration } = req.body;
+    
     const service = await Service.create({
       name,
       description,
@@ -51,6 +52,13 @@ const getServices = async (req, res, next) => {
       return sendSuccess(res, "Service fetched successfully", { service });
     }
 
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+
+    const limit = Math.min(
+      100,
+      Math.max(1, Number.parseInt(req.query.limit, 10) || 10),
+    );
+
     const { search, status, sortBy } = req.query;
     const filter = {};
 
@@ -74,20 +82,26 @@ const getServices = async (req, res, next) => {
       ? sortBy
       : "createdAt";
 
-    const services = await Service.find(filter).sort({
-      [selectedSort]: selectedSort === "name" ? 1 : -1,
-      _id: 1,
-    });
+    const services = await Service.find(filter)
+      .sort({ [selectedSort]: selectedSort === "name" ? 1 : -1, _id: 1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
 
     const totalServices = await Service.countDocuments(filter);
 
-    return sendSuccess(res, "Services fetched successfully", {
-      totalServices,
-      //   page,
-      //   limit,
-      //   totalPages: Math.ceil(totalCustomers / limit),
-      services,
-    });
+    return sendSuccess(
+      res,
+      "Services fetched successfully",
+      { services },
+      {
+        pagination: {
+          page,
+          limit,
+          total: totalServices,
+          totalPages: Math.ceil(totalServices / limit),
+        },
+      },
+    );
   } catch (error) {
     next(error);
   }
