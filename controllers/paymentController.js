@@ -48,6 +48,7 @@ const getPayment = async (req, res, next) => {
 };
 
 const updatePaymentStatus = async (req, res, next) => {
+  const session = await mongoose.startSession();
   try {
     const { id } = req.params;
 
@@ -61,41 +62,68 @@ const updatePaymentStatus = async (req, res, next) => {
 
     const allowedStatus = ["pending", "paid", "failed", "refunded"];
     if (!status || !allowedStatus.includes(status)) {
-      const error = new Error(
+      const error = new Error(  
         "Status must be pending, paid, failed, or refunded",
       );
       error.statusCode = 400;
       return next(error);
     }
 
-    const payment = await Payment.findById(id);
-    if (!payment) {
-      const error = new Error("Payment not found");
-      error.statusCode = 404;
-      return next(error);
-    }
-
-    payment.status = status;
-
+    // A payment can only move to "paid" with a valid method, so validate the
+    // method before touching the payment status.
     if (status === "paid") {
-      payment.method = method;
-      payment.paidAt = new Date();
-    } else {
-      payment.paidAt = null;
+      const allowedMethods = ["cash", "card", "upi"];
+      if (!method || !allowedMethods.includes(method)) {
+        const error = new Error("Payment method must be cash, card, or upi");
+        error.statusCode = 400;
+        return next(error);
+      }
+
+      // The client request is not proof that an online payment succeeded.
+      // Online methods must be confirmed by the payment gateway, so only cash
+      // can be settled manually through this endpoint.
+      if (method !== "cash") {
+        const error = new Error(
+          "Online payments must be confirmed by the payment gateway and cannot be marked paid manually",
+        );
+        error.statusCode = 400;
+        return next(error);
+      }
     }
 
-    await payment.save();
-
-    // Keep the linked Appointment's payment summary in sync with the
-    // authoritative Payment record so the two can never disagree.
+    // Update the authoritative Payment record and the linked Appointment's
+    // payment summary in one transaction so the two can never partially
+    // succeed and disagree.
+    let payment = null;
     let appointment = null;
-    if (payment.itemModel === "Appointment") {
-      appointment = await Appointment.findByIdAndUpdate(
-        payment.itemId,
-        { payment: status },
-        { returnDocument: "after", runValidators: true },
-      );
-    }
+
+    await session.withTransaction(async () => {
+      payment = await Payment.findById(id).session(session);
+      if (!payment) {
+        const error = new Error("Payment not found");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      payment.status = status;
+
+      if (status === "paid") {
+        payment.method = method;
+        payment.paidAt = new Date();
+      } else {
+        payment.paidAt = null;
+      }
+
+      await payment.save({ session });
+
+      if (payment.itemModel === "Appointment") {
+        appointment = await Appointment.findByIdAndUpdate(
+          payment.itemId,
+          { payment: status },
+          { returnDocument: "after", runValidators: true, session },
+        );
+      }
+    });
 
     return sendSuccess(res, "Payment status updated successfully", {
       payment,
@@ -111,6 +139,8 @@ const updatePaymentStatus = async (req, res, next) => {
       return next(validationError);
     }
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 

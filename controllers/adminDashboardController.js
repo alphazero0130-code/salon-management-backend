@@ -1,7 +1,7 @@
 import Appointment from "../models/Appointment.js";
 import Payment from "../models/Payment.js";
 import Staff from "../models/Staff.js";
-import User from "../models/User.js";
+import Customer from "../models/Customer.js";
 import sendSuccess from "../utils/apiResponse.js";
 
 const getDashboardStats = async (req, res, next) => {
@@ -16,7 +16,9 @@ const getDashboardStats = async (req, res, next) => {
       appointmentDate: { $gte: startOfDay, $lt: startOfNextDay }, // Greater than or equal to, Less than
     };
 
-    const totalCustomers = await User.countDocuments();
+    // Customers live in the Customer collection; the User collection only holds
+    // admin/staff accounts, so it must not be used for the customer count.
+    const totalCustomers = await Customer.countDocuments();
 
     const totalStaff = await Staff.countDocuments();
 
@@ -62,7 +64,8 @@ const getDashboardStats = async (req, res, next) => {
       },
     ]);
 
-    const result = revenue[0] || { totalRevenue: 0 };
+    // Return zeros when there are no matching payments for the day.
+    const result = revenue[0] || { totalRevenue: 0, totalPayment: 0 };
 
     return sendSuccess(res, "Dashboard statistics fetched successfully", {
       totalCustomers,
@@ -72,6 +75,16 @@ const getDashboardStats = async (req, res, next) => {
       confirmedAppointments,
       completedAppointments,
       todayRevenue: result.totalRevenue,
+      // Time scope of each statistic above.
+      // period: {
+      //   totalCustomers: "all-time",
+      //   totalStaff: "all-time",
+      //   todayAppointments: "today",
+      //   pendingAppointments: "today",
+      //   confirmedAppointments: "today",
+      //   completedAppointments: "today",
+      //   todayRevenue: "today",
+      // },
     });
   } catch (error) {
     next(error);

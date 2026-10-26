@@ -32,6 +32,11 @@ const createAppointment = async (req, res, next) => {
       error.statusCode = 404;
       return next(error);
     }
+    if (service.isActive === false) {
+      const error = new Error("Service is not available for appointments");
+      error.statusCode = 400;
+      return next(error);
+    }
 
     const appointment = await Appointment.create({
       user: userId,
@@ -301,38 +306,33 @@ const deleteAppointment = async (req, res, next) => {
 
 const getRevenueSummary = async (req, res, next) => {
   try {
-    const summary = await Appointment.aggregate([
+    // Revenue is derived from paid payment records (all-time) so this endpoint
+    // stays consistent with every other revenue endpoint.
+    const summary = await Payment.aggregate([
       {
         $match: {
-          status: "completed",
+          status: "paid",
         },
       },
-      {
-        $lookup: {
-          from: Service.collection.name,
-          localField: "service",
-          foreignField: "_id",
-          as: "service",
-        },
-      },
-      { $unwind: "$service" },
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: "$service.price" },
-          totalAppointment: { $sum: 1 },
+          totalRevenue: { $sum: "$amount" },
+          totalPayment: { $sum: 1 },
         },
       },
     ]);
 
+    // Return zeros for an empty summary.
     const result = summary[0] || {
       totalRevenue: 0,
-      totalAppointment: 0,
+      totalPayment: 0,
     };
 
     return sendSuccess(res, "Revenue fetched successfully", {
       revenue: result.totalRevenue,
-      completedAppointments: result.totalAppointment,
+      paidPayments: result.totalPayment,
+      period: "all-time",
     });
   } catch (error) {
     next(error);
@@ -341,16 +341,28 @@ const getRevenueSummary = async (req, res, next) => {
 
 const getRevenueByService = async (req, res, next) => {
   try {
-    const report = await Appointment.aggregate([
+    // Group paid payment records (all-time) by the service of their linked
+    // appointment, so per-service revenue matches the recorded payments.
+    const report = await Payment.aggregate([
       {
         $match: {
-          status: "completed",
+          status: "paid",
+          itemModel: "Appointment",
         },
       },
       {
         $lookup: {
+          from: Appointment.collection.name,
+          localField: "itemId",
+          foreignField: "_id",
+          as: "appointment",
+        },
+      },
+      { $unwind: "$appointment" },
+      {
+        $lookup: {
           from: Service.collection.name,
-          localField: "service",
+          localField: "appointment.service",
           foreignField: "_id",
           as: "serviceDetails",
         },
@@ -358,9 +370,10 @@ const getRevenueByService = async (req, res, next) => {
       { $unwind: "$serviceDetails" },
       {
         $group: {
-          _id: "$service",
-          totalRevenue: { $sum: "$serviceDetails.price" },
-          totalAppointments: { $sum: 1 },
+          _id: "$appointment.service",
+          serviceName: { $first: "$serviceDetails.name" },
+          totalRevenue: { $sum: "$amount" },
+          totalPayments: { $sum: 1 },
         },
       },
       {
@@ -370,26 +383,22 @@ const getRevenueByService = async (req, res, next) => {
       },
     ]);
 
-    if (report.length === 0) {
-      const error = new Error("No revenue data found");
-      error.statusCode = 200;
-      return next(error);
-    }
-
+    // Return zeros and an empty breakdown for an empty summary.
     const totalRevenue = report.reduce(
       (sum, item) => sum + item.totalRevenue,
       0,
     );
 
-    const totalAppointments = report.reduce(
-      (sum, item) => sum + item.totalAppointments,
+    const totalPayments = report.reduce(
+      (sum, item) => sum + item.totalPayments,
       0,
     );
 
     return sendSuccess(res, "Revenue fetched successfully", {
       totalRevenue,
-      totalAppointments,
+      totalPayments,
       report,
+      period: "all-time",
     });
   } catch (error) {
     next(error);

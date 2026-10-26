@@ -10,6 +10,7 @@ const serviceSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: [true, "Service Price is required"],
+    min: [0, "Service Price cannot be negative"],
   },
   duration: {
       type: Number,

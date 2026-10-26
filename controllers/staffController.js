@@ -1,10 +1,17 @@
 import mongoose from "mongoose";
 import Staff from "../models/Staff.js";
+import Appointment from "../models/Appointment.js";
 import sendSuccess from "../utils/apiResponse.js";
 
 const createStaff = async (req, res, next) => {
   try {
     const { name, email, jobTitle } = req.body;
+
+    if (!name?.trim() || !email?.trim() || !jobTitle?.trim()) {
+      const error = new Error("Name, email and job title are required");
+      error.statusCode = 400;
+      return next(error);
+    }
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -121,6 +128,8 @@ const fetchStaff = async (req, res, next) => {
   }
 };
 
+
+
 const updateStaff = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -200,6 +209,28 @@ const deleteStaff = async (req, res, next) => {
       const error = new Error("Staff id must be a valid MongoDB ObjectId");
       error.statusCode = 400;
       return next(error);
+    }
+
+    const linkedAppointments = await Appointment.countDocuments({ staff: id });
+
+    if (linkedAppointments > 0) {
+      const staff = await Staff.findByIdAndUpdate(
+        id,
+        { isActive: false, isAvailable: false },
+        { returnDocument: "after", runValidators: true },
+      );
+
+      if (!staff) {
+        const error = new Error("Staff not found");
+        error.statusCode = 404;
+        return next(error);
+      }
+
+      return sendSuccess(
+        res,
+        "Staff has linked appointments and was deactivated instead of deleted",
+        { staff },
+      );
     }
 
     const staff = await Staff.findByIdAndDelete(id);

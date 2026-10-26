@@ -1,18 +1,18 @@
 import express from "express";
 import { authorizeRoles, protect } from "../middleware/authMiddleware.js";
-import staffConstroller from "../controllers/staffConstroller.js";
+import staffController from "../controllers/staffController.js";
 const router = express.Router();
 
-router.get("/", protect, authorizeRoles("admin"), staffConstroller.fetchStaff);
-router.post("/", protect, authorizeRoles("admin"), staffConstroller.createStaff);
+router.get("/", protect, authorizeRoles("admin"), staffController.fetchStaff);
+router.post("/", protect, authorizeRoles("admin"), staffController.createStaff);
 router.get(
   "/:id",
   protect,
   authorizeRoles("admin"),
-  staffConstroller.fetchStaff,
+  staffController.fetchStaff,
 );
-router.put("/:id", protect, authorizeRoles("admin"), staffConstroller.updateStaff);
-router.patch("/:id", protect, authorizeRoles("admin"), staffConstroller.updateEachField);
-router.delete("/:id", protect, authorizeRoles("admin"), staffConstroller.deleteStaff);
+router.put("/:id", protect, authorizeRoles("admin"), staffController.updateStaff);
+router.patch("/:id", protect, authorizeRoles("admin"), staffController.updateEachField);
+router.delete("/:id", protect, authorizeRoles("admin"), staffController.deleteStaff);
 
 export default router;

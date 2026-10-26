@@ -65,7 +65,7 @@ const registerUser = async (req, res, next) => {
 
 const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body ?? {};
 
     if (!email?.trim() || !password?.trim()) {
       const error = new Error("email and password are required");

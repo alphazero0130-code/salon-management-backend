@@ -27,19 +27,21 @@ const getRevenueReport = async (req, res, next) => {
       },
     ]);
 
-    if (report.length === 0) {
-      const error = new Error("No report data found");
-      error.statusCode = 200;
-      return next(error);
-    }
+    // if (report.length === 0) {
+    //   const error = new Error("No report data found");
+    //   error.statusCode = 200;
+    //   return next(error);
+    // }
 
     const summary = report[0] ?? {
       totalRevenue: 0,
       totalPayment: 0,
     };
 
+    // All-time total of every paid payment record.
     return sendSuccess(res, "Report fetched successfully", {
       report: summary,
+      period: "all-time",
     });
   } catch (error) {
     next(error);
