@@ -147,7 +147,7 @@ const updateStaff = async (req, res, next) => {
 
     if (!staff) {
       const error = new Error("Staff not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 
@@ -191,7 +191,7 @@ const updateEachField = async (req, res, next) => {
 
     if (!staff) {
       const error = new Error("Staff not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 
@@ -222,7 +222,7 @@ const deleteStaff = async (req, res, next) => {
 
       if (!staff) {
         const error = new Error("Staff not found");
-        error.statusCode = 404;
+        error.statusCode = 200;
         return next(error);
       }
 
@@ -237,7 +237,7 @@ const deleteStaff = async (req, res, next) => {
 
     if (!staff) {
       const error = new Error("Staff not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 

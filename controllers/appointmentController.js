@@ -29,7 +29,7 @@ const createAppointment = async (req, res, next) => {
     const service = await Service.findById(serviceId);
     if (!service) {
       const error = new Error("Service not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
     if (service.isActive === false) {
@@ -200,7 +200,7 @@ const updateAppointment = async (req, res, next) => {
 
     if (!appointment) {
       const error = new Error("Appointment not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
     await appointment.populate([
@@ -251,7 +251,7 @@ const updateField = async (req, res, next) => {
 
     if (!appointment) {
       const error = new Error("Appointment not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 
@@ -286,7 +286,7 @@ const deleteAppointment = async (req, res, next) => {
 
     if (!appointment) {
       const error = new Error("Appointment not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 

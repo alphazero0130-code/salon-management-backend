@@ -124,7 +124,7 @@ const updateService = async (req, res, next) => {
 
     if (!service) {
       const error = new Error("Service not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
     return sendSuccess(res, "Service updated successfully", { service });
@@ -160,7 +160,7 @@ const updateField = async (req, res, next) => {
 
     if (!service) {
       const error = new Error("Service not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 
@@ -181,7 +181,7 @@ const deleteService = async (req, res, next) => {
 
     if (!service) {
       const error = new Error("Service not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 

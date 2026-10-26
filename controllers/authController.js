@@ -172,7 +172,7 @@ const updateUserRole = async (req, res, next) => {
 
     if (!user) {
       const error = new Error("User not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 
@@ -229,7 +229,7 @@ const updateUserPassword = async (req, res, next) => {
 
     if (!user) {
       const error = new Error("User not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 

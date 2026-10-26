@@ -46,7 +46,7 @@ const getCustomer = async (req, res, next) => {
 
       if (!customer) {
         const error = new Error("Customer not found");
-        error.statusCode = 404;
+        error.statusCode = 200;
         return next(error);
       }
 
@@ -131,7 +131,7 @@ const updateCustomer = async (req, res, next) => {
 
     if (!customer) {
       const error = new Error("Customer not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 
@@ -175,7 +175,7 @@ const updateField = async (req, res, next) => {
 
     if (!customer) {
       const error = new Error("Customer not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 
@@ -202,7 +202,7 @@ const deleteCustomer = async (req, res, next) => {
 
     if (!customer) {
       const error = new Error("Customer not found");
-      error.statusCode = 404;
+      error.statusCode = 200;
       return next(error);
     }
 

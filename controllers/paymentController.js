@@ -101,7 +101,7 @@ const updatePaymentStatus = async (req, res, next) => {
       payment = await Payment.findById(id).session(session);
       if (!payment) {
         const error = new Error("Payment not found");
-        error.statusCode = 404;
+        error.statusCode = 200;
         throw error;
       }
 
