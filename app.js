@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import errorHandler from "./middleware/errorHandler.js";
@@ -16,6 +17,13 @@ import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
 const app = express();
 app.set("trust proxy", 1);
 app.use(helmet());
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
 app.use(express.json({ limit: "100kb" }));
 
 app.use((req, res, next) => {
