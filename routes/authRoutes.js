@@ -27,14 +27,44 @@ const router = express.Router();
  *                 type: string
  *                 minLength: 8
  *     responses:
- *       201:
- *         description: Registration successful
+ *       200:
+ *         description: Verification code sent to email
  *       400:
  *         description: Invalid or missing registration details
  *       409:
  *         description: Email is already registered
  */
 router.post("/register", authController.registerUser);
+
+/**
+ * @swagger
+ * /api/auth/register/verify:
+ *   post:
+ *     summary: Verify registration email with an OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, otp]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               otp:
+ *                 type: string
+ *                 pattern: "^\\d{6}$"
+ *     responses:
+ *       201:
+ *         description: Registration successful
+ *       400:
+ *         description: Invalid or expired verification code
+ *       409:
+ *         description: Email is already registered
+ */
+router.post("/register/verify", authController.verifyRegistrationOtp);
 
 /**
  * @swagger

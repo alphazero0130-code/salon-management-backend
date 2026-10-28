@@ -2,11 +2,14 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { randomInt } from "node:crypto";
 import sendSuccess from "../utils/apiResponse.js";
+import sendOtpEmail from "../utils/emailService.js";
+import EmailOtp from "../models/EmailOtp.js";
 
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body ?? {};
 
     if (!name?.trim() || !email?.trim() || !password?.trim()) {
       const error = new Error("Name, email and password are required");
@@ -30,14 +33,83 @@ const registerUser = async (req, res, next) => {
       return next(error);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10); // 10 is the bcrypt cost factor, which controls how much work hashing takes.
+    const otp = String(randomInt(100000, 1000000));
 
-    const user = await User.create({
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await EmailOtp.deleteMany({
+      email: normalizedEmail,
+      purpose: "registration",
+    });
+
+    await EmailOtp.create({
       name: name.trim(),
       email: normalizedEmail,
-      password: hashedPassword,
-      role: "staff",
+      purpose: "registration",
+      otpHash,
+      passwordHash,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
+
+    await sendOtpEmail(normalizedEmail, otp, "registration");
+
+    return sendSuccess(
+      res,
+      "Verification code sent to your email",
+      { email: normalizedEmail },
+    );
+  } catch (error) {
+    if (error.code === 11000) {
+      const anotherRrror = new Error("Email is already registered");
+      anotherRrror.statusCode = 409;
+      return next(anotherRrror);
+    }
+
+    next(error);
+  }
+};
+
+const verifyRegistrationOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body ?? {};
+
+    if (!email?.trim() || !otp?.trim()) {
+      const error = new Error("Email and OTP are required");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailOtp = await EmailOtp.findOne({
+      email: normalizedEmail,
+      purpose: "registration",
+    }).select("+otpHash +passwordHash"); // compare the submitted OTP with otpHash and use passwordHash
+
+    if (!emailOtp || emailOtp.expiresAt <= new Date()) {
+      const error = new Error("Invalid or expired verification code");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const isOtpCorrect = await bcrypt.compare(otp.trim(), emailOtp.otpHash);
+
+    if (!isOtpCorrect) {
+      const error = new Error("Invalid or expired verification code");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const user = await User.create({
+      name: emailOtp.name,
+      email: emailOtp.email,
+      password: emailOtp.passwordHash,
+      role: "staff",
+      isEmailVerified: true,
+    });
+
+    await EmailOtp.deleteOne({ _id: emailOtp._id });
 
     return sendSuccess(
       res,
@@ -54,9 +126,9 @@ const registerUser = async (req, res, next) => {
     );
   } catch (error) {
     if (error.code === 11000) {
-      const anotherRrror = new Error("Email is already registered");
-      anotherRrror.statusCode = 409;
-      return next(anotherRrror);
+      const duplicateError = new Error("Email is already registered");
+      duplicateError.statusCode = 409;
+      return next(duplicateError);
     }
 
     next(error);
@@ -246,6 +318,7 @@ const updateUserPassword = async (req, res, next) => {
 
 export default {
   registerUser,
+  verifyRegistrationOtp,
   loginUser,
   fetchUser,
   updateUserRole,

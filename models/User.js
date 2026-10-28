@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: false,
       select: false, // the password hash is excluded from normal Mongoose queries by default.
     },
     role: {
@@ -24,6 +24,15 @@ const userSchema = new mongoose.Schema(
       enum: ["admin", "staff"],
       default: "staff",
     },
+    isEmailVerified: {
+      type: Boolean,
+      default: false
+    },
+    googleId: { // stores Google's stable user identifier, not the Google access token.
+      type: String,
+      unique: true,
+      sparse: true, // allows users without a Google ID to coexist with Google users.
+    }
   },
   { timestamps: true },
 );
