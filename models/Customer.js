@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 
 const customerSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // links this customer profile back to its login record in the User table.
+    },
     name: {
       type: String,
       required: [true, "Customer name is required"],

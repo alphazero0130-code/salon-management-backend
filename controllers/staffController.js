@@ -1,21 +1,39 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import Staff from "../models/Staff.js";
+import User from "../models/User.js";
 import Appointment from "../models/Appointment.js";
 import sendSuccess from "../utils/apiResponse.js";
 
 const createStaff = async (req, res, next) => {
   try {
-    const { name, email, jobTitle } = req.body;
+    const { name, email, jobTitle, password, role } = req.body;
 
-    if (!name?.trim() || !email?.trim() || !jobTitle?.trim()) {
-      const error = new Error("Name, email and job title are required");
+    if (!name?.trim() || !email?.trim() || !jobTitle?.trim() || !password?.trim()) {
+      const error = new Error(
+        "Name, email, job title and password are required",
+      );
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (password.length < 8) {
+      const error = new Error("Password must be at least 8 characters");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const normalizedRole = (role?.trim() || "staff").toLowerCase();
+
+    if (!["admin", "staff"].includes(normalizedRole)) {
+      const error = new Error("Role must be either admin or staff");
       error.statusCode = 400;
       return next(error);
     }
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingUser = await Staff.findOne({ email: normalizedEmail });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
       const error = new Error("Staff is already registered");
@@ -23,11 +41,29 @@ const createStaff = async (req, res, next) => {
       return next(error);
     }
 
-    const staff = await Staff.create({
-      name,
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Admin-created staff are active immediately, so they can log in straight away.
+    const user = await User.create({
       email: normalizedEmail,
-      jobTitle,
+      password: passwordHash,
+      role: normalizedRole,
+      status: "active",
     });
+
+    let staff;
+    try {
+      staff = await Staff.create({
+        user: user._id,
+        name,
+        email: normalizedEmail,
+        jobTitle,
+      });
+    } catch (profileError) {
+      // Roll back the login record so we never leave a User without a profile.
+      await User.deleteOne({ _id: user._id });
+      throw profileError;
+    }
 
     return sendSuccess(
       res,
@@ -38,11 +74,18 @@ const createStaff = async (req, res, next) => {
           name: staff.name,
           email: staff.email,
           jobTitle: staff.jobTitle,
+          role: user.role,
+          status: user.status,
         },
       },
       { status: 201 },
     );
   } catch (error) {
+    if (error.code === 11000) {
+      const duplicateError = new Error("Staff is already registered");
+      duplicateError.statusCode = 409;
+      return next(duplicateError);
+    }
     if (error.name === "ValidationError") {
       const validationError = new Error("Validation Error");
       validationError.statusCode = 400;

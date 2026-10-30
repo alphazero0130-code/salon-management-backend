@@ -2,11 +2,6 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     email: {
       type: String,
       required: true,
@@ -21,18 +16,17 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "staff"],
+      enum: ["admin", "staff", "customer"],
       default: "staff",
     },
-    isEmailVerified: {
-      type: Boolean,
-      default: false
-    },
-    googleId: { // stores Google's stable user identifier, not the Google access token.
+    status: {
       type: String,
-      unique: true,
-      sparse: true, // allows users without a Google ID to coexist with Google users.
-    }
+      enum: {
+        values: ["active", "inactive"],
+        message: "Status must be either active or inactive",
+      },
+      default: "active",
+    },
   },
   { timestamps: true },
 );

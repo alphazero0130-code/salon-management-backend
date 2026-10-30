@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import User from "../models/User.js";
+import Customer from "../models/Customer.js";
+import Staff from "../models/Staff.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { randomInt } from "node:crypto";
@@ -9,7 +11,7 @@ import EmailOtp from "../models/EmailOtp.js";
 
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body ?? {};
+    const { name, email, password, role, phone } = req.body ?? {};
 
     if (!name?.trim() || !email?.trim() || !password?.trim()) {
       const error = new Error("Name, email and password are required");
@@ -23,21 +25,68 @@ const registerUser = async (req, res, next) => {
       return next(error);
     }
 
+    const normalizedRole = (role?.trim() || "customer").toLowerCase();
+
+    // Public registration is for customers only; staff are added by an admin.
+    if (normalizedRole !== "customer") {
+      const error = new Error(
+        "Only customers can register. Staff accounts are added by an administrator",
+      );
+      error.statusCode = 403;
+      return next(error);
+    }
+
+    if (!phone?.trim()) {
+      const error = new Error("Phone number is required");
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
 
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
-      const error = new Error("Email is already registered");
-      error.statusCode = 409;
-      return next(error);
+      // An active account cannot be registered again.
+      if (existingUser.status === "active") {
+        const error = new Error("Email is already registered");
+        error.statusCode = 409;
+        return next(error);
+      }
+
+      // Clear a previous, never-verified registration so it can be started fresh.
+      await Customer.deleteMany({ user: existingUser._id });
+      await Staff.deleteMany({ user: existingUser._id });
+      await User.deleteOne({ _id: existingUser._id });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Save the login record. It stays inactive until the email OTP is verified.
+    const user = await User.create({
+      email: normalizedEmail,
+      password: passwordHash,
+      role: normalizedRole,
+      status: "inactive",
+    });
+
+    // Save the customer profile data in the Customer table.
+    try {
+      await Customer.create({
+        user: user._id,
+        name: name.trim(),
+        email: normalizedEmail,
+        phone: phone.trim(),
+      });
+    } catch (profileError) {
+      // Roll back the login record so we never leave a User without a profile.
+      await User.deleteOne({ _id: user._id });
+      throw profileError;
     }
 
     const otp = String(randomInt(100000, 1000000));
 
     const otpHash = await bcrypt.hash(otp, 10);
-
-    const passwordHash = await bcrypt.hash(password, 10);
 
     await EmailOtp.deleteMany({
       email: normalizedEmail,
@@ -45,11 +94,9 @@ const registerUser = async (req, res, next) => {
     });
 
     await EmailOtp.create({
-      name: name.trim(),
       email: normalizedEmail,
       purpose: "registration",
       otpHash,
-      passwordHash,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
@@ -85,7 +132,7 @@ const verifyRegistrationOtp = async (req, res, next) => {
     const emailOtp = await EmailOtp.findOne({
       email: normalizedEmail,
       purpose: "registration",
-    }).select("+otpHash +passwordHash"); // compare the submitted OTP with otpHash and use passwordHash
+    }).select("+otpHash"); // compare the submitted OTP with otpHash
 
     if (!emailOtp || emailOtp.expiresAt <= new Date()) {
       const error = new Error("Invalid or expired verification code");
@@ -101,13 +148,24 @@ const verifyRegistrationOtp = async (req, res, next) => {
       return next(error);
     }
 
-    const user = await User.create({
-      name: emailOtp.name,
-      email: emailOtp.email,
-      password: emailOtp.passwordHash,
-      role: "staff",
-      isEmailVerified: true,
-    });
+    // Activate the account that was created during registration.
+    const user = await User.findOneAndUpdate(
+      { email: normalizedEmail },
+      { status: "active" },
+      { returnDocument: "after" },
+    );
+
+    if (!user) {
+      const error = new Error("Registration not found. Please register again");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    // Read the profile name from the right table for the response.
+    const profile =
+      user.role === "customer"
+        ? await Customer.findOne({ user: user._id })
+        : await Staff.findOne({ user: user._id });
 
     await EmailOtp.deleteOne({ _id: emailOtp._id });
 
@@ -117,9 +175,10 @@ const verifyRegistrationOtp = async (req, res, next) => {
       {
         user: {
           id: user._id,
-          name: user.name,
+          name: profile?.name ?? null,
           email: user.email,
           role: user.role,
+          status: user.status,
         },
       },
       { status: 201 },
@@ -152,7 +211,7 @@ const loginUser = async (req, res, next) => {
       email: normalizedEmail,
     }).select("+password");
 
-    if (!user) {
+    if (!user || !user.password) {
       const error = new Error("Invalid email or password");
       error.statusCode = 401;
       return next(error);
@@ -166,6 +225,21 @@ const loginUser = async (req, res, next) => {
       error.statusCode = 401;
       return next(error);
     }
+
+    // Only active accounts are allowed to log in
+    if (user.status !== "active") {
+      const error = new Error(
+        "Your account is not active. Please verify your email or contact the administrator.",
+      );
+      error.statusCode = 403;
+      return next(error);
+    }
+
+    // Load the matching profile so the name can be returned from the right table
+    const profile =
+      user.role === "customer"
+        ? await Customer.findOne({ user: user._id })
+        : await Staff.findOne({ user: user._id });
 
     // Create the JWT
 
@@ -184,9 +258,10 @@ const loginUser = async (req, res, next) => {
       token,
       user: {
         id: user._id,
-        name: user.name,
+        name: profile?.name ?? null,
         email: user.email,
         role: user.role,
+        status: user.status,
       },
     });
     // Return the token and safe user details
@@ -197,16 +272,45 @@ const loginUser = async (req, res, next) => {
 
 const fetchUser = async (req, res, next) => {
   try {
-     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
 
     const limit = Math.min(
       100,
       Math.max(1, Number.parseInt(req.query.limit, 10) || 10),
     );
-    const user = await User.find().skip((page - 1) * limit)
+
+    const { role, status, search } = req.query;
+    const filter = {};
+
+    if (role) {
+      if (!["admin", "staff", "customer"].includes(role)) {
+        const error = new Error("Role must be admin, staff or customer");
+        error.statusCode = 400;
+        return next(error);
+      }
+      filter.role = role;
+    }
+
+    if (status) {
+      if (!["active", "inactive"].includes(status)) {
+        const error = new Error("Status must be active or inactive");
+        error.statusCode = 400;
+        return next(error);
+      }
+      filter.status = status;
+    }
+
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.email = { $regex: escapedSearch, $options: "i" };
+    }
+
+    const users = await User.find(filter)
+      .sort({ createdAt: -1, _id: 1 })
+      .skip((page - 1) * limit)
       .limit(limit);
 
-    const totalUser = await User.countDocuments();
+    const totalUser = await User.countDocuments(filter);
 
     if (totalUser === 0) {
       const error = new Error("No user found");
@@ -214,7 +318,39 @@ const fetchUser = async (req, res, next) => {
       return next(error);
     }
 
-    return sendSuccess(res, "User fetched successfully", { user });
+    // Pull the profile for each user from the Customer and Staff tables.
+    const userIds = users.map((item) => item._id);
+
+    const [customers, staff] = await Promise.all([
+      Customer.find({ user: { $in: userIds } }),
+      Staff.find({ user: { $in: userIds } }),
+    ]);
+
+    const profileByUser = new Map();
+    for (const item of customers) profileByUser.set(String(item.user), item);
+    for (const item of staff) profileByUser.set(String(item.user), item);
+
+    const user = users.map((item) => ({
+      id: item._id,
+      email: item.email,
+      role: item.role,
+      status: item.status,
+      profile: profileByUser.get(String(item._id)) ?? null,
+    }));
+
+    return sendSuccess(
+      res,
+      "User fetched successfully",
+      { user },
+      {
+        pagination: {
+          page,
+          limit,
+          total: totalUser,
+          totalPages: Math.ceil(totalUser / limit),
+        },
+      },
+    );
   } catch (error) {
     next(error);
   }
@@ -230,8 +366,8 @@ const updateUserRole = async (req, res, next) => {
       return next(error);
     }
 
-    if (!["admin", "staff"].includes(roleType)) {
-      const error = new Error("roleType must be either admin or staff");
+    if (!["admin", "staff", "customer"].includes(roleType)) {
+      const error = new Error("roleType must be admin, staff or customer");
       error.statusCode = 400;
       return next(error);
     }
@@ -251,9 +387,9 @@ const updateUserRole = async (req, res, next) => {
     return sendSuccess(res, "User role updated successfully", {
       user: {
         id: user._id,
-        name: user.name,
         email: user.email,
         role: user.role,
+        status: user.status,
       },
     });
   } catch (error) {
@@ -308,7 +444,7 @@ const updateUserPassword = async (req, res, next) => {
     return sendSuccess(res, "Password updated successfully", {
       user: {
         id: user._id,
-        name: user.name,
+        email: user.email,
       },
     });
   } catch (error) {

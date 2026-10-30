@@ -8,7 +8,7 @@ const router = express.Router();
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register a staff user
+ *     summary: Register a customer (creates a User plus a Customer profile)
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -16,7 +16,7 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, email, password]
+ *             required: [name, email, password, phone]
  *             properties:
  *               name:
  *                 type: string
@@ -26,11 +26,15 @@ const router = express.Router();
  *               password:
  *                 type: string
  *                 minLength: 8
+ *               phone:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Verification code sent to email
  *       400:
  *         description: Invalid or missing registration details
+ *       403:
+ *         description: Only customers can self-register
  *       409:
  *         description: Email is already registered
  */
@@ -92,6 +96,8 @@ router.post("/register/verify", authController.verifyRegistrationOtp);
  *         description: Email or password is missing
  *       401:
  *         description: Invalid email or password
+ *       403:
+ *         description: Account is inactive
  */
 router.post("/login", authController.loginUser);
 

@@ -22,18 +22,6 @@ const emailOtpSchema = new mongoose.Schema(
       select: false, // Mongoose hides this field by default (don’t include this field by default when reading it from the database)
     },
 
-    // Used only while registration is pending.
-    name: {
-      type: String,
-    },
-
-    // Store a password hash, never the original password.
-    passwordHash: {
-      type: String,
-      select: false,
-      select: false,
-    },
-
     attempts: {
       type: Number,
       default: 0,

@@ -1,17 +1,60 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import Customer from "../models/Customer.js";
+import User from "../models/User.js";
 import sendSuccess from "../utils/apiResponse.js";
 
 const createCustomer = async (req, res, next) => {
   try {
-    const { name, phone, email, status } = req.body;
+    const { name, phone, email, status, password } = req.body;
 
-    const customer = await Customer.create({
-      name,
-      phone,
-      email,
-      status,
+    if (!name?.trim() || !phone?.trim() || !email?.trim()) {
+      const error = new Error("Name, phone and email are required");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    // A password is optional here, the customer may set it later.
+    if (password && password.length < 8) {
+      const error = new Error("Password must be at least 8 characters");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    if (existingUser) {
+      const error = new Error("Email is already registered");
+      error.statusCode = 409;
+      return next(error);
+    }
+
+    const passwordHash = password ? await bcrypt.hash(password, 10) : undefined;
+
+    // Create the login record. Customers added by staff/admin are active immediately.
+    const user = await User.create({
+      email: normalizedEmail,
+      password: passwordHash,
+      role: "customer",
+      status: "active",
     });
+
+    let customer;
+    try {
+      customer = await Customer.create({
+        user: user._id,
+        name,
+        phone,
+        email: normalizedEmail,
+        status,
+      });
+    } catch (profileError) {
+      // Roll back the login record so we never leave a User without a profile.
+      await User.deleteOne({ _id: user._id });
+      throw profileError;
+    }
 
     return sendSuccess(
       res,
@@ -20,6 +63,11 @@ const createCustomer = async (req, res, next) => {
       { status: 201 },
     );
   } catch (error) {
+    if (error.code === 11000) {
+      const duplicateError = new Error("Email is already registered");
+      duplicateError.statusCode = 409;
+      return next(duplicateError);
+    }
     if (error.name === "ValidationError") {
       const validationError = new Error("Validation failed");
       validationError.statusCode = 400;
