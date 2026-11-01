@@ -5,13 +5,13 @@ import  {protect, authorizeRoles} from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.post("/", protect, authorizeRoles("admin"), appointmentController.createAppointment);
-router.get("/", protect, authorizeRoles("admin"), appointmentController.getAppointment);
+router.get("/", protect, authorizeRoles("admin", "staff"), appointmentController.getAppointment);
 
 router.get("/reports/revenue", protect, authorizeRoles("admin"), appointmentController.getRevenueSummary);
 router.get("/reports/services", protect, authorizeRoles("admin"), appointmentController.getRevenueByService);
-router.get("/:id", protect,  authorizeRoles("admin"), appointmentController.getAppointment);
+router.get("/:id", protect,  authorizeRoles("admin", "staff"), appointmentController.getAppointment);
 router.put("/:id", protect,  authorizeRoles("admin"),appointmentController.updateAppointment);
-router.patch("/:id", protect, authorizeRoles("admin"),appointmentController.updateField);
+router.patch("/:id", protect, authorizeRoles("admin", "staff"),appointmentController.updateField);
 router.delete("/:id", protect, authorizeRoles("admin"), appointmentController.deleteAppointment);
 
 export default router;

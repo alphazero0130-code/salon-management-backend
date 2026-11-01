@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Appointment from "../models/Appointment.js";
 import Service from "../models/Service.js";
 import Payment from "../models/Payment.js";
+import Staff from "../models/Staff.js";
 import sendSuccess from "../utils/apiResponse.js";
 
 const createAppointment = async (req, res, next) => {
@@ -93,6 +94,20 @@ const createAppointment = async (req, res, next) => {
 const getAppointment = async (req, res, next) => {
   try {
     const id = req.params?.id;
+    const filter = {};
+
+    if (req.user.role === "staff") {
+      const staff = await Staff.findOne({ user: req.user.id, isActive: true });
+
+      if (!staff) {
+        const error = new Error("Active staff profile not found");
+        error.statusCode = 404;
+        return next(error);
+      }
+
+      filter.staff = staff._id;
+    }
+
     if (id) {
       if (!mongoose.isObjectIdOrHexString(id)) {
         const error = new Error(
@@ -101,14 +116,14 @@ const getAppointment = async (req, res, next) => {
         error.statusCode = 400;
         return next(error);
       }
-      const appointment = await Appointment.findById(id)
+      const appointment = await Appointment.findOne({ ...filter, _id: id })
         .populate("user", "name phone email")
         .populate("service", "name price")
         .populate("staff", "name jobTitle");
 
       if (!appointment) {
-        const error = new Error("No appointment detail found");
-        error.statusCode = 200;
+        const error = new Error("Appointment not found");
+        error.statusCode = req.user.role === "staff" ? 404 : 200;
         return next(error);
       }
 
@@ -124,8 +139,6 @@ const getAppointment = async (req, res, next) => {
     );
 
     const { search, status, sortBy } = req.query;
-    const filter = {};
-
     if (search) {
       const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.notes = { $regex: escapedSearch, $options: "i" };
@@ -227,7 +240,20 @@ const updateField = async (req, res, next) => {
       return next(error);
     }
 
-    const allowedField = ["appointmentDate", "status", "notes"];
+    const allowedField =
+      req.user.role === "staff"
+        ? ["status"]
+        : ["appointmentDate", "status", "notes"];
+
+    if (
+      req.user.role === "staff" &&
+      Object.keys(req.body ?? {}).some((field) => !allowedField.includes(field))
+    ) {
+      const error = new Error("Staff can only update appointment status");
+      error.statusCode = 403;
+      return next(error);
+    }
+
     const update = {};
 
     for (const field of allowedField) {
@@ -244,14 +270,27 @@ const updateField = async (req, res, next) => {
       return next(error);
     }
 
-    const appointment = await Appointment.findByIdAndUpdate(id, update, {
+    const query = { _id: id };
+    if (req.user.role === "staff") {
+      const staff = await Staff.findOne({ user: req.user.id, isActive: true });
+
+      if (!staff) {
+        const error = new Error("Active staff profile not found");
+        error.statusCode = 404;
+        return next(error);
+      }
+
+      query.staff = staff._id;
+    }
+
+    const appointment = await Appointment.findOneAndUpdate(query, update, {
       returnDocument: "after",
       runValidators: true,
     });
 
     if (!appointment) {
       const error = new Error("Appointment not found");
-      error.statusCode = 200;
+      error.statusCode = req.user.role === "staff" ? 404 : 200;
       return next(error);
     }
 
