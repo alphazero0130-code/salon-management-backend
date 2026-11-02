@@ -9,6 +9,9 @@ import sendSuccess from "../utils/apiResponse.js";
 import sendOtpEmail from "../utils/emailService.js";
 import EmailOtp from "../models/EmailOtp.js";
 
+// Maximum number of incorrect OTP guesses before the code is invalidated.
+const MAX_OTP_ATTEMPTS = 5;
+
 const registerUser = async (req, res, next) => {
   try {
     const { name, email, password, role, phone } = req.body ?? {};
@@ -140,9 +143,27 @@ const verifyRegistrationOtp = async (req, res, next) => {
       return next(error);
     }
 
+    // Cap incorrect guesses so the 6-digit code cannot be brute-forced.
+    if (emailOtp.attempts >= MAX_OTP_ATTEMPTS) {
+      await EmailOtp.deleteOne({ _id: emailOtp._id });
+      const error = new Error(
+        "Too many incorrect attempts. Please register again to get a new code.",
+      );
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const isOtpCorrect = await bcrypt.compare(otp.trim(), emailOtp.otpHash);
 
     if (!isOtpCorrect) {
+      // Count the failed attempt, and drop the code once the limit is reached.
+      emailOtp.attempts += 1;
+      if (emailOtp.attempts >= MAX_OTP_ATTEMPTS) {
+        await EmailOtp.deleteOne({ _id: emailOtp._id });
+      } else {
+        await emailOtp.save();
+      }
+
       const error = new Error("Invalid or expired verification code");
       error.statusCode = 400;
       return next(error);

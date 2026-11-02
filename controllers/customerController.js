@@ -21,6 +21,12 @@ const createCustomer = async (req, res, next) => {
       return next(error);
     }
 
+    if (status !== undefined && !["active", "inactive"].includes(status)) {
+      const error = new Error("Status must be active or inactive");
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
 
     const existingUser = await User.findOne({ email: normalizedEmail });
@@ -172,7 +178,27 @@ const updateCustomer = async (req, res, next) => {
       return next(error);
     }
 
-    const customer = await Customer.findByIdAndUpdate(id, req.body, {
+    // Only allow known fields. Passing req.body straight into the update would
+    // let a caller set unintended fields (e.g. the `user` login reference) —
+    // a mass-assignment vulnerability.
+    const allowedFields = ["name", "phone", "email", "status"];
+    const update = {};
+
+    for (const field of allowedFields) {
+      if (req.body?.[field] !== undefined) {
+        update[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(update).length === 0) {
+      const error = new Error(
+        "Please provide at least one valid field to update",
+      );
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const customer = await Customer.findByIdAndUpdate(id, update, {
       returnDocument: "after",
       runValidators: true,
     });

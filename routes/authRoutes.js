@@ -133,7 +133,7 @@ router.get("/user",protect ,authorizeRoles("admin"), authController.fetchUser);
  *                 type: string
  *               roleType:
  *                 type: string
- *                 enum: [admin, staff]
+ *                 enum: [admin, staff, customer]
  *     responses:
  *       200:
  *         description: User role updated successfully

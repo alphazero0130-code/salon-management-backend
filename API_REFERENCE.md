@@ -96,17 +96,19 @@ Passwords must be at least 8 characters and match.
 
 ## Customers — `/api/customers`
 
-### `GET /` — Authenticated
+Customer records contain personal data, so these endpoints are restricted to staff and admins. Customers cannot access the customer-management API; they self-register through `/api/auth/register`.
+
+### `GET /` — Admin, staff
 
 List customers.
 
 **Query parameters:** `page`, `limit`, `search` (name search), `status` (`active`, `inactive`), `sortBy` (`name`, `createdAt`).
 
-### `GET /:id` — Authenticated
+### `GET /:id` — Admin, staff
 
 Fetch one customer. **Path parameter:** `id` (customer ObjectId). The `id` segment is optional; omit it to list customers.
 
-### `POST /` — Authenticated
+### `POST /` — Admin, staff
 
 Create a customer and an active customer login record.
 
@@ -124,13 +126,13 @@ Create a customer and an active customer login record.
 
 Required: `name`, `phone`, `email`. `password` is optional; if provided, it must be at least 8 characters. `status` may be `active` or `inactive`.
 
-### `PUT /:id` — Authenticated
+### `PUT /:id` — Admin, staff
 
 Update a customer. **Path parameter:** `id` (customer ObjectId).
 
 **Payload:** JSON object with customer fields to update, such as `name`, `phone`, `email`, or `status`.
 
-### `PATCH /:id` — Authenticated
+### `PATCH /:id` — Admin, staff
 
 Partially update a customer. **Path parameter:** `id` (customer ObjectId).
 

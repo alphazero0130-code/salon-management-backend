@@ -18,8 +18,22 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(helmet());
 
+// Only allow browser requests from known frontend origins. Set CORS_ORIGINS to
+// a comma-separated list (e.g. "https://app.example.com,https://admin.example.com").
+// A wildcard origin would let any website drive the API on a user's behalf.
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: "*",
+  origin(origin, callback) {
+    // Requests with no Origin header (curl, mobile apps, server-to-server) are allowed.
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
