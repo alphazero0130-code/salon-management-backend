@@ -42,6 +42,8 @@ Verify the registration code. No authentication required.
 }
 ```
 
+The code expires 10 minutes after it is sent. After 5 incorrect attempts the code is invalidated and the user must register again to receive a new one.
+
 ### `POST /login`
 
 Log in an active customer, staff member, or admin. No authentication required.
