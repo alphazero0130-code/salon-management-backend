@@ -8,7 +8,7 @@ const router = express.Router();
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register a customer (creates a User plus a Customer profile)
+ *     summary: Register a customer (creates an active User plus a Customer profile)
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -29,8 +29,8 @@ const router = express.Router();
  *               phone:
  *                 type: string
  *     responses:
- *       200:
- *         description: Verification code sent to email
+ *       201:
+ *         description: Registration successful
  *       400:
  *         description: Invalid or missing registration details
  *       403:
@@ -39,36 +39,6 @@ const router = express.Router();
  *         description: Email is already registered
  */
 router.post("/register", authController.registerUser);
-
-/**
- * @swagger
- * /api/auth/register/verify:
- *   post:
- *     summary: Verify registration email with an OTP
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, otp]
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               otp:
- *                 type: string
- *                 pattern: "^\\d{6}$"
- *     responses:
- *       201:
- *         description: Registration successful
- *       400:
- *         description: Invalid or expired verification code
- *       409:
- *         description: Email is already registered
- */
-router.post("/register/verify", authController.verifyRegistrationOtp);
 
 /**
  * @swagger

@@ -14,7 +14,7 @@ This reference describes the routes currently mounted by `app.js`. Update this f
 
 ### `POST /register`
 
-Register a customer and send an email verification code.
+Register a customer. The account is active immediately; no email verification is required.
 
 **Payload**
 
@@ -27,22 +27,7 @@ Register a customer and send an email verification code.
 }
 ```
 
-`role` is optional and defaults to `customer`; any other role is rejected. Password must be at least 8 characters. No authentication required.
-
-### `POST /register/verify`
-
-Verify the registration code. No authentication required.
-
-**Payload**
-
-```json
-{
-  "email": "alex@example.com",
-  "otp": "123456"
-}
-```
-
-The code expires 10 minutes after it is sent. After 5 incorrect attempts the code is invalidated and the user must register again to receive a new one.
+`role` is optional and defaults to `customer`; any other role is rejected. Password must be at least 8 characters. No authentication required. The response includes the newly created active user.
 
 ### `POST /login`
 

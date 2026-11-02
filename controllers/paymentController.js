@@ -8,6 +8,11 @@ const getPayment = async (req, res, next) => {
     const type = req.params.type?.trim();
 
     const filter = type ? { type } : {};
+
+    // Customers can only see their own payment history.
+    if (req.user?.role === "customer") {
+      filter.user = req.user.id;
+    }
     
      const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
 

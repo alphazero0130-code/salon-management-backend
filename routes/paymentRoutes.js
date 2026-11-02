@@ -7,13 +7,13 @@ const router = express.Router();
 router.get(
   "/",
   protect,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "customer"),
   paymentController.getPayment,
 );
 router.get(
   "/:type",
   protect,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "customer"),
   paymentController.getPayment,
 );
 router.patch(

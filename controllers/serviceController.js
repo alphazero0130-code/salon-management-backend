@@ -34,6 +34,8 @@ const createService = async (req, res, next) => {
 
 const getServices = async (req, res, next) => {
   try {
+    const isCustomer = req.user?.role === "customer";
+
     const id = req.params.id?.trim();
     if (id) {
       if (!mongoose.isObjectIdOrHexString(id)) {
@@ -41,7 +43,10 @@ const getServices = async (req, res, next) => {
         error.statusCode = 400;
         return next(error);
       }
-      const service = await Service.findById(id);
+      // Customers can only view active services.
+      const service = isCustomer
+        ? await Service.findOne({ _id: id, isActive: true })
+        : await Service.findById(id);
 
        if (!service) {
         const error = new Error("No service detail found");
@@ -75,6 +80,11 @@ const getServices = async (req, res, next) => {
         return next(error);
       }
       filter.isActive = status === "active";
+    }
+
+    // Customers can only see active services, regardless of any status filter.
+    if (isCustomer) {
+      filter.isActive = true;
     }
 
     const allowedSortFields = ["name", "createdAt"];

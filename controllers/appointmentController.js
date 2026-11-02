@@ -108,6 +108,10 @@ const getAppointment = async (req, res, next) => {
       filter.staff = staff._id;
     }
 
+    if (req.user.role === "customer") {
+      filter.user = req.user.id;
+    }
+
     if (id) {
       if (!mongoose.isObjectIdOrHexString(id)) {
         const error = new Error(

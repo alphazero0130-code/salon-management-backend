@@ -4,13 +4,7 @@ import Customer from "../models/Customer.js";
 import Staff from "../models/Staff.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { randomInt } from "node:crypto";
 import sendSuccess from "../utils/apiResponse.js";
-import sendOtpEmail from "../utils/emailService.js";
-import EmailOtp from "../models/EmailOtp.js";
-
-// Maximum number of incorrect OTP guesses before the code is invalidated.
-const MAX_OTP_ATTEMPTS = 5;
 
 const registerUser = async (req, res, next) => {
   try {
@@ -50,32 +44,25 @@ const registerUser = async (req, res, next) => {
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
-      // An active account cannot be registered again.
-      if (existingUser.status === "active") {
-        const error = new Error("Email is already registered");
-        error.statusCode = 409;
-        return next(error);
-      }
-
-      // Clear a previous, never-verified registration so it can be started fresh.
-      await Customer.deleteMany({ user: existingUser._id });
-      await Staff.deleteMany({ user: existingUser._id });
-      await User.deleteOne({ _id: existingUser._id });
+      const error = new Error("Email is already registered");
+      error.statusCode = 409;
+      return next(error);
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Save the login record. It stays inactive until the email OTP is verified.
+    // Save the login record as active; email verification is temporarily disabled.
     const user = await User.create({
       email: normalizedEmail,
       password: passwordHash,
       role: normalizedRole,
-      status: "inactive",
+      status: "active",
     });
 
     // Save the customer profile data in the Customer table.
+    let customer;
     try {
-      await Customer.create({
+      customer = await Customer.create({
         user: user._id,
         name: name.trim(),
         email: normalizedEmail,
@@ -87,116 +74,13 @@ const registerUser = async (req, res, next) => {
       throw profileError;
     }
 
-    const otp = String(randomInt(100000, 1000000));
-
-    const otpHash = await bcrypt.hash(otp, 10);
-
-    await EmailOtp.deleteMany({
-      email: normalizedEmail,
-      purpose: "registration",
-    });
-
-    await EmailOtp.create({
-      email: normalizedEmail,
-      purpose: "registration",
-      otpHash,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    });
-
-    await sendOtpEmail(normalizedEmail, otp, "registration");
-
-    return sendSuccess(
-      res,
-      "Verification code sent to your email",
-      { email: normalizedEmail },
-    );
-  } catch (error) {
-    if (error.code === 11000) {
-      const anotherRrror = new Error("Email is already registered");
-      anotherRrror.statusCode = 409;
-      return next(anotherRrror);
-    }
-
-    next(error);
-  }
-};
-
-const verifyRegistrationOtp = async (req, res, next) => {
-  try {
-    const { email, otp } = req.body ?? {};
-
-    if (!email?.trim() || !otp?.trim()) {
-      const error = new Error("Email and OTP are required");
-      error.statusCode = 400;
-      return next(error);
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const emailOtp = await EmailOtp.findOne({
-      email: normalizedEmail,
-      purpose: "registration",
-    }).select("+otpHash"); // compare the submitted OTP with otpHash
-
-    if (!emailOtp || emailOtp.expiresAt <= new Date()) {
-      const error = new Error("Invalid or expired verification code");
-      error.statusCode = 400;
-      return next(error);
-    }
-
-    // Cap incorrect guesses so the 6-digit code cannot be brute-forced.
-    if (emailOtp.attempts >= MAX_OTP_ATTEMPTS) {
-      await EmailOtp.deleteOne({ _id: emailOtp._id });
-      const error = new Error(
-        "Too many incorrect attempts. Please register again to get a new code.",
-      );
-      error.statusCode = 400;
-      return next(error);
-    }
-
-    const isOtpCorrect = await bcrypt.compare(otp.trim(), emailOtp.otpHash);
-
-    if (!isOtpCorrect) {
-      // Count the failed attempt, and drop the code once the limit is reached.
-      emailOtp.attempts += 1;
-      if (emailOtp.attempts >= MAX_OTP_ATTEMPTS) {
-        await EmailOtp.deleteOne({ _id: emailOtp._id });
-      } else {
-        await emailOtp.save();
-      }
-
-      const error = new Error("Invalid or expired verification code");
-      error.statusCode = 400;
-      return next(error);
-    }
-
-    // Activate the account that was created during registration.
-    const user = await User.findOneAndUpdate(
-      { email: normalizedEmail },
-      { status: "active" },
-      { returnDocument: "after" },
-    );
-
-    if (!user) {
-      const error = new Error("Registration not found. Please register again");
-      error.statusCode = 400;
-      return next(error);
-    }
-
-    // Read the profile name from the right table for the response.
-    const profile =
-      user.role === "customer"
-        ? await Customer.findOne({ user: user._id })
-        : await Staff.findOne({ user: user._id });
-
-    await EmailOtp.deleteOne({ _id: emailOtp._id });
-
     return sendSuccess(
       res,
       "Registration successful",
       {
         user: {
           id: user._id,
-          name: profile?.name ?? null,
+          name: customer.name,
           email: user.email,
           role: user.role,
           status: user.status,
@@ -206,9 +90,9 @@ const verifyRegistrationOtp = async (req, res, next) => {
     );
   } catch (error) {
     if (error.code === 11000) {
-      const duplicateError = new Error("Email is already registered");
-      duplicateError.statusCode = 409;
-      return next(duplicateError);
+      const anotherRrror = new Error("Email is already registered");
+      anotherRrror.statusCode = 409;
+      return next(anotherRrror);
     }
 
     next(error);
@@ -250,7 +134,7 @@ const loginUser = async (req, res, next) => {
     // Only active accounts are allowed to log in
     if (user.status !== "active") {
       const error = new Error(
-        "Your account is not active. Please verify your email or contact the administrator.",
+        "Your account is not active. Please contact the administrator.",
       );
       error.statusCode = 403;
       return next(error);
@@ -475,7 +359,6 @@ const updateUserPassword = async (req, res, next) => {
 
 export default {
   registerUser,
-  verifyRegistrationOtp,
   loginUser,
   fetchUser,
   updateUserRole,
