@@ -352,11 +352,98 @@ Update a payment status and, for appointment payments, synchronize the appointme
 
 Get the all-time summary of paid revenue and number of paid payments. No parameters or body.
 
-## Admin dashboard — `/api/admin/dashboard`
+## Dashboard — `/api/dashboard`
 
-### `GET /stats` — Admin
+### `GET /` — Admin, staff, customer
 
-Get dashboard totals and today's appointment/revenue statistics. No parameters or body.
+Get the dashboard for the logged-in user. There is a single endpoint for every role: the caller is identified from the JWT, there are no parameters or body, and the response always has the same structure with a `role` field plus role-appropriate `statistics`. Returns `404` if the token has no matching profile (staff/customer), and `403` for an unknown role.
+
+**Response `data` (shared structure for every role)**
+
+```json
+{
+  "role": "customer",
+  "profile": {
+    "id": "PROFILE_OBJECT_ID",
+    "firstName": "Rahul",
+    "lastName": "Sharma",
+    "email": "rahul@example.com",
+    "phone": "9876543210",
+    "profileImage": null
+  },
+  "statistics": { },
+  "nextAppointment": {
+    "appointmentId": "APPOINTMENT_OBJECT_ID",
+    "serviceName": "Haircut & Styling",
+    "date": "2026-11-05",
+    "time": "16:00",
+    "staffName": "Priya",
+    "status": "booked",
+    "amount": 800
+  },
+  "recentAppointments": [],
+  "rewards": { "availablePoints": 0 },
+  "coupons": { "availableCount": 0 },
+  "membership": null,
+  "notifications": { "unreadCount": 0 }
+}
+```
+
+**`statistics` by role**
+
+- **admin** — system-wide: `totalCustomers`, `totalStaff`, `todayAppointments`, `pendingAppointments`, `confirmedAppointments`, `completedAppointments`, `todayRevenue`. `nextAppointment`/`recentAppointments` cover all appointments; `profile` comes from the admin's staff record (`jobTitle` included, no `phone`).
+- **staff** — their assigned appointments: `totalAppointments`, `completedAppointments`, `upcomingAppointments`, `cancelledAppointments`. `nextAppointment`/`recentAppointments` are limited to appointments assigned to them; `profile` includes `jobTitle` (no `phone`).
+- **customer** — their own bookings: `totalAppointments`, `completedAppointments`, `upcomingAppointments`, `cancelledAppointments`, `totalSpent`. `profile` includes `phone`.
+
+Field notes:
+
+- `firstName` / `lastName` are derived by splitting the stored profile `name`; `profileImage` is always `null` (not yet stored).
+- `upcomingAppointments` counts future appointments with status `booked` or `pending`; `totalSpent` (customer) sums the user's `paid` payments.
+- `nextAppointment` is the soonest upcoming appointment, or `null`; `recentAppointments` lists up to 5 past appointments, newest first. `date`/`time` are formatted from `appointmentDate` in UTC.
+- `rewards`, `coupons`, `membership`, and `notifications` are placeholders returning fixed defaults until those features are modelled.
+
+**Response `data`**
+
+```json
+{
+  "customer": {
+    "id": "CUSTOMER_OBJECT_ID",
+    "firstName": "Rahul",
+    "lastName": "Sharma",
+    "email": "rahul@example.com",
+    "phone": "9876543210",
+    "profileImage": null
+  },
+  "statistics": {
+    "totalAppointments": 12,
+    "completedAppointments": 10,
+    "upcomingAppointments": 1,
+    "cancelledAppointments": 1,
+    "totalSpent": 8500
+  },
+  "nextAppointment": {
+    "appointmentId": "APPOINTMENT_OBJECT_ID",
+    "serviceName": "Haircut & Styling",
+    "date": "2026-11-05",
+    "time": "16:00",
+    "staffName": "Priya",
+    "status": "booked",
+    "amount": 800
+  },
+  "recentAppointments": [],
+  "rewards": { "availablePoints": 0 },
+  "coupons": { "availableCount": 0 },
+  "membership": null,
+  "notifications": { "unreadCount": 0 }
+}
+```
+
+Field notes:
+
+- `firstName` / `lastName` are derived by splitting the stored customer `name`; `profileImage` is always `null` (not yet stored).
+- `statistics.upcomingAppointments` counts future appointments with status `booked` or `pending`. `totalSpent` sums the customer's `paid` payments.
+- `nextAppointment` is the soonest upcoming appointment, or `null` if there are none. `recentAppointments` lists up to 5 past appointments, newest first. `date`/`time` are formatted from `appointmentDate` in UTC; `status` uses the appointment statuses (`booked`, `completed`, `cancelled`, `pending`).
+- `rewards`, `coupons`, `membership`, and `notifications` are placeholders returning fixed defaults until those features are modelled.
 
 ## Pagination defaults
 
