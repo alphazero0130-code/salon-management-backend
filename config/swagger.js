@@ -13,8 +13,10 @@ const options = {
 
     servers: [
       {
-        url: "http://localhost:3000",
-        description: "Local development server",
+        url:
+          process.env.SWAGGER_SERVER_URL ||
+          `http://localhost:${process.env.PORT || 3000}`,
+        description: "API server",
       },
     ],
 
